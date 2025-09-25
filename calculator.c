@@ -7,18 +7,19 @@ int validateString(char s[]){
     
     for (int i=0 ; i<strlen(s) ; i++){
         if (s[i] == '\n') continue;
-        if (!((s[i]>='0' && s[i]<='9') || s[i]=='+' || s[i]=='-' || s[i]=='*' || s[i]=='/')){
+        if (!((s[i]>='0' && s[i]<='9') || s[i]=='+' || s[i]=='-' || s[i]=='*' || s[i]=='/' || s[i]==' ')){
             return 0;
         }
     }
     return 1;
 }
 
-//Step 2: Tokenization and Sequence Validation
-//Handle whitespaces and new line in isdigit
-int tokeniseExpression(char input[], int numbers[], char operators[]){
+int numCount, opCount;
+
+//Step 2: Seperation of numbers & operators and Sequence Validation
+int tokenizeExpression(char input[], int numbers[], char operators[]){
     int i=0 , n = strlen(input);
-    int numCount=0, opCount=0;
+    numCount=0; opCount=0;
 
     while(i<n){
         if (isdigit(input[i])){
@@ -45,6 +46,41 @@ int tokeniseExpression(char input[], int numbers[], char operators[]){
     return 1;
 }
 
+//Step 3: Calculation
+void calculateResult(int numbers[], char operators[]){
+
+    //Higher Precedence : * and /
+    for (int i=0 ; i<opCount ; i++){
+        if (operators[i] == '*' || operators[i] == '/'){
+            if (operators[i] == '*'){
+                numbers[i] = numbers[i]*numbers[i+1];
+            } 
+            else if (operators[i] == '/'){
+                //Edge Case: Division By Zero
+                if (numbers[i+1] == 0){
+                    printf("Error: Division by Zero");
+                    return;
+                }
+                numbers[i] = numbers[i]/numbers[i+1];
+            }
+
+            //Shift the numbers to left
+            for (int j=i+1 ; j<numCount ; j++){
+                numbers[j] = numbers[j+1];
+            } numCount--;
+
+            //Shift the operators to left
+            for(int j=i ; j<opCount ; j++){
+                operators[j] = operators[j+1];
+            } opCount--;
+
+            i--;
+        }
+        
+    }
+
+}
+
 int main(){
     char input[1000];
     int numbers[1000];
@@ -58,8 +94,9 @@ int main(){
         return 0;
     }
 
-    tokeniseExpression(input, numbers, operators);
+    tokenizeExpression(input, numbers, operators);
 
     // printf("Validated String: %s",input);
+    calculateResult(numbers, operators);
 
 }
