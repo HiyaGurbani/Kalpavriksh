@@ -75,9 +75,20 @@ void calculateResult(int numbers[], char operators[]){
             } opCount--;
 
             i--;
-        }
-        
+        } 
     }
+    
+    int result = numbers[0];
+    for (int i=0 ; i<opCount ; i++){
+        if (operators[i] == '+'){
+            result += numbers[i+1];
+        }
+        else if (operators[i] == '-'){
+            result -= numbers[i+1];
+        }
+    }
+
+    printf("%d", result);
 
 }
 
