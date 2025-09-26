@@ -78,6 +78,7 @@ void calculateResult(int numbers[], char operators[]){
         } 
     }
     
+    //Lower Precedence: + and -
     int result = numbers[0];
     for (int i=0 ; i<opCount ; i++){
         if (operators[i] == '+'){
@@ -105,7 +106,9 @@ int main(){
         return 0;
     }
 
-    tokenizeExpression(input, numbers, operators);
+    if (!tokenizeExpression(input, numbers, operators)){
+        return 0;
+    }
 
     // printf("Validated String: %s",input);
     calculateResult(numbers, operators);
