@@ -37,11 +37,37 @@ void createUser(){
     printf("User Created Successfully\n");
 }
 
+void readUser(){
+    FILE *fp;
+    char line[200];
+    
+    fp = fopen("users.txt", "r");
+    if (fp == NULL){
+        // printf("Error Opening File\n");
+        printf("There are no users");
+        return;
+    }
+
+    if (fgets(line, sizeof(line), fp) == NULL){
+        printf("There are no users. Kindly create a user!");
+        fclose(fp);
+        return;
+    }
+
+    printf("Users's List\n");
+    printf("%s", line);
+    while(fgets(line, sizeof(line), fp)){
+        printf("%s",line);
+    }
+
+    fclose(fp);
+}
+
 int main(){
     int choice;
 
     printf("List of Operations: \n");
-    printf("1. Create User \n2. Read User \n3. Update User \n4. Delete User \n");
+    printf("1. Create User \n2. Read Users \n3. Update User \n4. Delete User \n");
     printf("Enter the number of operation you want to perform: ");
     scanf("%d", &choice);
 
@@ -50,7 +76,10 @@ int main(){
         createUser();
     }
 
-    else if (choice==2) printf("Read User chosen");
+    else if (choice==2){
+        printf("Read User chosen\n");
+        readUser();
+    }
     else if (choice==3) printf("Update User chosen");
     else if (choice==4) printf("Delete User chosen");
     else printf("Wrong Choice Selected");
