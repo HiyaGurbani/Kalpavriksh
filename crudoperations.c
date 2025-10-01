@@ -2,6 +2,7 @@
 
 #include<stdio.h>
 #include<string.h>
+#include <stdlib.h>
 
 struct User {
     int id;
@@ -31,6 +32,8 @@ void createUser(){
     printf("Enter Age: ");
     scanf("%d", &u.age);
 
+    //Check for unique
+
     fprintf(fp, "%d %s %d\n", u.id, u.name, u.age);
 
     fclose(fp);
@@ -43,8 +46,7 @@ void readUser(){
     
     fp = fopen("users.txt", "r");
     if (fp == NULL){
-        // printf("Error Opening File\n");
-        printf("There are no users");
+        printf("Error Opening File. Try creating a User!\n");
         return;
     }
 
@@ -61,6 +63,70 @@ void readUser(){
     }
 
     fclose(fp);
+}
+
+void updateUser(){
+    FILE *fp, *temp;
+    char line[200];
+    int id, found=0;
+
+    printf("Enter the ID of the user: ");
+    scanf("%d", &id);
+
+    fp = fopen("users.txt", "r");
+    if (fp == NULL){
+        printf("Error Opening File. Try creating a User!\n");
+    }
+
+    temp = fopen("temp.txt", "w");
+    if (temp == NULL){
+        printf("Error Opening Temp File!\n");
+        fclose(fp);
+        return;
+    }
+
+    while(fgets(line, sizeof(line), fp)){
+        int currentId;
+        char name[100];
+        int age;
+        char *lastSpace = strrchr(line, ' ');
+
+        if (lastSpace != NULL){
+            *lastSpace = '\0';
+            age = atoi(lastSpace+1);
+            sscanf(line,  "%d %[^\n]", &currentId, name);
+
+            if (currentId == id){
+                found = 1;
+                char newName[100];
+                int newAge;
+
+                printf("Enter new name: ");
+                getchar();
+                fgets(newName, sizeof(newName), stdin);
+                newName[strcspn(newName, "\n")] = '\0';
+
+                printf("Enter new age: ");
+                scanf("%d", &newAge);
+
+                fprintf(temp, "%d %s %d\n", currentId, newName, newAge);
+            } else {
+                fprintf(temp, "%d %s %d\n", currentId, name, age);
+            }
+        }
+    }
+
+    fclose(fp);
+    fclose(temp);
+
+    if (found){
+        remove("users.txt");
+        rename("temp.txt", "users.txt");
+        printf("User updated successfully!\n");
+    } else {
+        remove("temp.txt");
+        printf("User with ID %d not found.\n", id);
+    }
 }
 
 int main(){
@@ -80,8 +146,17 @@ int main(){
         printf("Read User chosen\n");
         readUser();
     }
-    else if (choice==3) printf("Update User chosen");
-    else if (choice==4) printf("Delete User chosen");
+
+    else if (choice==3){
+        printf("Update User chosen\n");
+        updateUser();
+    }
+
+    else if (choice==4){
+        printf("Delete User chosen");
+        deleteUser();
+    }
+
     else printf("Wrong Choice Selected");
 
     return 0;
