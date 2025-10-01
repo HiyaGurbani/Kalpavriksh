@@ -129,6 +129,60 @@ void updateUser(){
     }
 }
 
+
+void deleteUser(){
+    FILE *fp, *temp;
+    char line[200];
+    int id, found=0;
+
+    printf("Enter the IF of the user to delete: ");
+    scanf("%d", &id);
+
+    fp = fopen("users.txt", "r");
+    if (fp == NULL){
+        printf("Error Opening File. Try creating a user!\n");
+        return;
+    }
+
+    temp = fopen("temp.txt", "w");
+    if (temp == NULL){
+        printf("Error Opening Temp File!\n");
+        fclose(fp);
+        return;
+    }
+
+    while(fgets(line, sizeof(line), fp)){
+        int currentId, age;
+        char name[100];
+        char *lastSpace = strrchr(line, ' ');
+
+        if (lastSpace != NULL){
+            *lastSpace = '\0';
+            age = atoi(lastSpace+1);
+            sscanf(line, "%d %[^\n]", &currentId, name);
+
+            if (currentId ==id){
+                found = 1;
+            } else {
+                fprintf(temp, "%d %s %d\n", currentId, name, age);
+            }
+        }
+    }
+
+    fclose(fp);
+    fclose(temp);
+
+    if (found){
+        remove("users.txt");
+        rename("temp.txt", "users.txt");
+        printf("User deleted successfully!\n");
+    } else {
+        remove("temp.txt");
+        printf("User with ID %d not found.\n", id);
+    }
+}
+
+
 int main(){
     int choice;
 
@@ -153,7 +207,7 @@ int main(){
     }
 
     else if (choice==4){
-        printf("Delete User chosen");
+        printf("Delete User chosen\n");
         deleteUser();
     }
 
