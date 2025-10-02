@@ -10,19 +10,49 @@ struct User {
     int age;
 };
 
+//Creating a New User and checking the unique ID constraint
 void createUser(){
     struct User u;
 
     FILE *fp;
+    char line[200];
+    int idExists = 0;
+
+    printf("Enter ID: ");
+    scanf("%d", &u.id);
+    getchar();
+
+    fp = fopen("users.txt", "r");
+    if (fp != NULL){
+        while (fgets(line, sizeof(line), fp)){
+            int currentId, age;
+            char name[100];
+            char *lastSpace = strrchr(line, ' ');
+
+            if (lastSpace != NULL){
+                *lastSpace = '\0';
+                age = atoi(lastSpace+1);
+                sscanf(line, "%d %[^\n]", &currentId, name);
+
+                if (currentId == u.id){
+                    idExists = 1;
+                    break;
+                }
+            }
+        }
+        fclose(fp);
+    }
+
+    if (idExists){
+        printf("Error: User with ID %d already exists!\n", u.id);
+        return;
+    }
+
     fp = fopen("users.txt", "a");
     if (fp == NULL){
         printf("Error creating file\n");
         return;
     }
-
-    printf("Enter ID: ");
-    scanf("%d", &u.id);
-    getchar();
 
     printf("Enter Name: ");
     fgets(u.name, sizeof(u.name), stdin);
@@ -32,14 +62,13 @@ void createUser(){
     printf("Enter Age: ");
     scanf("%d", &u.age);
 
-    //Check for unique
-
     fprintf(fp, "%d %s %d\n", u.id, u.name, u.age);
 
     fclose(fp);
     printf("User Created Successfully\n");
 }
 
+//Reading all the present users
 void readUser(){
     FILE *fp;
     char line[200];
@@ -65,6 +94,7 @@ void readUser(){
     fclose(fp);
 }
 
+//Updating the user on the basis of ID
 void updateUser(){
     FILE *fp, *temp;
     char line[200];
@@ -129,19 +159,20 @@ void updateUser(){
     }
 }
 
-
+//Deleting the user by id 
 void deleteUser(){
     FILE *fp, *temp;
     char line[200];
     int id, found=0;
 
-    printf("Enter the IF of the user to delete: ");
+    printf("Enter the ID of the user to delete: ");
     scanf("%d", &id);
 
     fp = fopen("users.txt", "r");
     if (fp == NULL){
         printf("Error Opening File. Try creating a user!\n");
         return;
+
     }
 
     temp = fopen("temp.txt", "w");
@@ -186,32 +217,41 @@ void deleteUser(){
 int main(){
     int choice;
 
-    printf("List of Operations: \n");
-    printf("1. Create User \n2. Read Users \n3. Update User \n4. Delete User \n");
-    printf("Enter the number of operation you want to perform: ");
-    scanf("%d", &choice);
+    while(1){
+        printf("\nList of Operations: \n");
+        printf("1. Create User \n2. Read Users \n3. Update User \n4. Delete User \n5. Exit\n");
+        printf("Enter the number of operation you want to perform: ");
+        scanf("%d", &choice);
 
-    if (choice==1){
-        printf("Create User chosen\n");
-        createUser();
+        if (choice==1){
+            printf("Create User chosen\n");
+            createUser();
+        }
+
+        else if (choice==2){
+            printf("Read User chosen\n");
+            readUser();
+        }
+
+        else if (choice==3){
+            printf("Update User chosen\n");
+            updateUser();
+        }
+
+        else if (choice==4){
+            printf("Delete User chosen\n");
+            deleteUser();
+        }
+
+        else if (choice==5){
+            printf("Exiting");
+            break;
+        }
+
+        else{
+            printf("Wrong Choice Selected");
+        }
     }
-
-    else if (choice==2){
-        printf("Read User chosen\n");
-        readUser();
-    }
-
-    else if (choice==3){
-        printf("Update User chosen\n");
-        updateUser();
-    }
-
-    else if (choice==4){
-        printf("Delete User chosen\n");
-        deleteUser();
-    }
-
-    else printf("Wrong Choice Selected");
 
     return 0;
 }
