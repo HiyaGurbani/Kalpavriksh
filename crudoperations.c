@@ -10,7 +10,7 @@ struct User {
     int age;
 };
 
-//Creating a New User and checking the unique ID constraint
+//Operation 1 : Creating a New User and checking the unique ID constraint
 void createUser(){
     struct User u;
 
@@ -68,7 +68,7 @@ void createUser(){
     printf("User Created Successfully\n");
 }
 
-//Reading all the present users
+//Operation 2 : Reading all the present users
 void readUser(){
     FILE *fp;
     char line[200];
@@ -94,7 +94,7 @@ void readUser(){
     fclose(fp);
 }
 
-//Updating the user on the basis of ID
+//Operation 3 : Updating the user on the basis of ID
 void updateUser(){
     FILE *fp, *temp;
     char line[200];
@@ -106,6 +106,7 @@ void updateUser(){
     fp = fopen("users.txt", "r");
     if (fp == NULL){
         printf("Error Opening File. Try creating a User!\n");
+        return;
     }
 
     temp = fopen("temp.txt", "w");
@@ -159,7 +160,7 @@ void updateUser(){
     }
 }
 
-//Deleting the user by id 
+//Operation 4 : Deleting the user by id 
 void deleteUser(){
     FILE *fp, *temp;
     char line[200];
