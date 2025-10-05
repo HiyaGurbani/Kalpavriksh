@@ -1,158 +1,158 @@
-//CRUD Operations on File
-
 #include<stdio.h>
 #include<string.h>
-#include <stdlib.h>
+#include<stdlib.h>
+#include<stdbool.h>
+
+#define LINE_SIZE 200
+#define NAME_SIZE 100
+#define USER_FILE "users.txt"
 
 struct User {
     int id;
-    char name[100];
+    char name[NAME_SIZE];
     int age;
 };
 
-//Operation 1 : Creating a New User and checking the unique ID constraint
-void createUser(){
-    struct User u;
+//Parses line of file and fills User Struct
+bool parseUserLine(const char *line, struct User *user){
+    char tempLine[LINE_SIZE];
+    strncpy(tempLine, line, LINE_SIZE);
+    tempLine[LINE_SIZE - 1] = '\0';
 
-    FILE *fp;
-    char line[200];
-    int idExists = 0;
+    char *lastSpace = strrchr(tempLine, ' ');
+    if (lastSpace == NULL){
+        return false;
+    }
+
+    *lastSpace = '\0';
+    user->age = atoi(lastSpace+1);
+
+    if (sscanf(tempLine, "%d %[^\n]", &user->id, user->name) != 2){
+        return false;
+    }
+
+    return true;
+}
+
+//Operation 1 : Create a New User and checking the unique ID constraint
+void createUser(){
+    struct User user, parsedUser;
+
+    FILE *usersFile;
+    char line[LINE_SIZE];
+    bool idExists = false;
 
     printf("Enter ID: ");
-    scanf("%d", &u.id);
+    scanf("%d", &user.id);
     getchar();
 
-    fp = fopen("users.txt", "r");
-    if (fp != NULL){
-        while (fgets(line, sizeof(line), fp)){
-            int currentId, age;
-            char name[100];
-            char *lastSpace = strrchr(line, ' ');
-
-            if (lastSpace != NULL){
-                *lastSpace = '\0';
-                age = atoi(lastSpace+1);
-                sscanf(line, "%d %[^\n]", &currentId, name);
-
-                if (currentId == u.id){
-                    idExists = 1;
-                    break;
-                }
+    usersFile = fopen(USER_FILE, "r");
+    if (usersFile != NULL){
+        while (fgets(line, sizeof(line), usersFile)){
+            if (parseUserLine(line , &parsedUser) && parsedUser.id == user.id){
+                idExists = true;
+                break;
             }
         }
-        fclose(fp);
+        fclose(usersFile);
     }
 
     if (idExists){
-        printf("Error: User with ID %d already exists!\n", u.id);
+        printf("Error: User with ID %d already exists!\n", user.id);
         return;
     }
 
-    fp = fopen("users.txt", "a");
-    if (fp == NULL){
+    usersFile = fopen(USER_FILE, "a");
+    if (usersFile == NULL){
         printf("Error creating file\n");
         return;
     }
 
     printf("Enter Name: ");
-    fgets(u.name, sizeof(u.name), stdin);
-    //Used to remove extra line with fgets
-    u.name[strcspn(u.name, "\n")] = '\0';
+    fgets(user.name, sizeof(user.name), stdin);
+    user.name[strcspn(user.name, "\n")] = '\0';
 
     printf("Enter Age: ");
-    scanf("%d", &u.age);
+    scanf("%d", &user.age);
 
-    fprintf(fp, "%d %s %d\n", u.id, u.name, u.age);
+    fprintf(usersFile, "%d %s %d\n", user.id, user.name, user.age);
+    fclose(usersFile);
 
-    fclose(fp);
     printf("User Created Successfully\n");
 }
 
-//Operation 2 : Reading all the present users
-void readUser(){
-    FILE *fp;
-    char line[200];
+//Operation 2 : Display all users
+void displayUsers(){
+    FILE *usersFile;
+    char line[LINE_SIZE];
     
-    fp = fopen("users.txt", "r");
-    if (fp == NULL){
+    usersFile = fopen(USER_FILE, "r");
+    if (usersFile == NULL){
         printf("Error Opening File. Try creating a User!\n");
         return;
     }
 
-    if (fgets(line, sizeof(line), fp) == NULL){
+    if (fgets(line, sizeof(line), usersFile) == NULL){
         printf("There are no users. Kindly create a user!");
-        fclose(fp);
+        fclose(usersFile);
         return;
     }
 
-    printf("Users's List\n");
+    printf("Users' List\n");
     printf("%s", line);
-    while(fgets(line, sizeof(line), fp)){
+    while(fgets(line, sizeof(line), usersFile)){
         printf("%s",line);
     }
 
-    fclose(fp);
+    fclose(usersFile);
 }
 
-//Operation 3 : Updating the user on the basis of ID
+//Operation 3 : Update user by ID
 void updateUser(){
-    FILE *fp, *temp;
-    char line[200];
-    int id, found=0;
+    FILE *usersFile, *tempFile;
+    char line[LINE_SIZE];
+    int id;
+    bool userExists = false;
+    struct User parsedUser;
 
     printf("Enter the ID of the user: ");
     scanf("%d", &id);
 
-    fp = fopen("users.txt", "r");
-    if (fp == NULL){
+    usersFile = fopen(USER_FILE, "r");
+    if (usersFile == NULL){
         printf("Error Opening File. Try creating a User!\n");
         return;
     }
 
-    temp = fopen("temp.txt", "w");
-    if (temp == NULL){
+    tempFile = fopen("temp.txt", "w");
+    if (tempFile == NULL){
         printf("Error Opening Temp File!\n");
-        fclose(fp);
+        fclose(usersFile);
         return;
     }
 
-    while(fgets(line, sizeof(line), fp)){
-        int currentId;
-        char name[100];
-        int age;
-        char *lastSpace = strrchr(line, ' ');
-
-        if (lastSpace != NULL){
-            *lastSpace = '\0';
-            age = atoi(lastSpace+1);
-            sscanf(line,  "%d %[^\n]", &currentId, name);
-
-            if (currentId == id){
-                found = 1;
-                char newName[100];
-                int newAge;
-
+    while(fgets(line, sizeof(line), usersFile)){
+        if (parseUserLine(line, &parsedUser)){
+            if (parsedUser.id == id){
+                userExists = true;
                 printf("Enter new name: ");
                 getchar();
-                fgets(newName, sizeof(newName), stdin);
-                newName[strcspn(newName, "\n")] = '\0';
+                fgets(parsedUser.name, sizeof(parsedUser.name), stdin);
+                parsedUser.name[strcspn(parsedUser.name, "\n")] = '\0';
 
                 printf("Enter new age: ");
-                scanf("%d", &newAge);
-
-                fprintf(temp, "%d %s %d\n", currentId, newName, newAge);
-            } else {
-                fprintf(temp, "%d %s %d\n", currentId, name, age);
+                scanf("%d", &parsedUser.age);
             }
+            fprintf(tempFile, "%d %s %d\n", parsedUser.id, parsedUser.name, parsedUser.age);
         }
     }
 
-    fclose(fp);
-    fclose(temp);
+    fclose(usersFile);
+    fclose(tempFile);
 
-    if (found){
-        remove("users.txt");
-        rename("temp.txt", "users.txt");
+    if (userExists){
+        remove(USER_FILE);
+        rename("temp.txt", USER_FILE);
         printf("User updated successfully!\n");
     } else {
         remove("temp.txt");
@@ -160,53 +160,46 @@ void updateUser(){
     }
 }
 
-//Operation 4 : Deleting the user by id 
+//Operation 4 : Delete user by id 
 void deleteUser(){
-    FILE *fp, *temp;
-    char line[200];
-    int id, found=0;
+    FILE *usersFile, *tempFile;
+    char line[LINE_SIZE];
+    int id;
+    bool userExists = false;
+    struct User parsedUser;
 
     printf("Enter the ID of the user to delete: ");
     scanf("%d", &id);
 
-    fp = fopen("users.txt", "r");
-    if (fp == NULL){
+    usersFile = fopen(USER_FILE, "r");
+    if (usersFile == NULL){
         printf("Error Opening File. Try creating a user!\n");
         return;
-
     }
 
-    temp = fopen("temp.txt", "w");
-    if (temp == NULL){
+    tempFile = fopen("temp.txt", "w");
+    if (tempFile == NULL){
         printf("Error Opening Temp File!\n");
-        fclose(fp);
+        fclose(usersFile);
         return;
     }
 
-    while(fgets(line, sizeof(line), fp)){
-        int currentId, age;
-        char name[100];
-        char *lastSpace = strrchr(line, ' ');
-
-        if (lastSpace != NULL){
-            *lastSpace = '\0';
-            age = atoi(lastSpace+1);
-            sscanf(line, "%d %[^\n]", &currentId, name);
-
-            if (currentId ==id){
-                found = 1;
+    while(fgets(line, sizeof(line), usersFile)){
+        if (parseUserLine(line, &parsedUser)){
+            if (parsedUser.id == id){
+                userExists = true;
             } else {
-                fprintf(temp, "%d %s %d\n", currentId, name, age);
+                fprintf(tempFile, "%d %s %d\n", parsedUser.id, parsedUser.name, parsedUser.age);
             }
         }
     }
 
-    fclose(fp);
-    fclose(temp);
+    fclose(usersFile);
+    fclose(tempFile);
 
-    if (found){
-        remove("users.txt");
-        rename("temp.txt", "users.txt");
+    if (userExists){
+        remove(USER_FILE);
+        rename("temp.txt", USER_FILE);
         printf("User deleted successfully!\n");
     } else {
         remove("temp.txt");
@@ -220,37 +213,38 @@ int main(){
 
     while(1){
         printf("\nList of Operations: \n");
-        printf("1. Create User \n2. Read Users \n3. Update User \n4. Delete User \n5. Exit\n");
+        printf("1. Create User \n2. Display Users \n3. Update User \n4. Delete User \n5. Exit\n");
         printf("Enter the number of operation you want to perform: ");
         scanf("%d", &choice);
 
-        if (choice==1){
-            printf("Create User chosen\n");
-            createUser();
-        }
+        switch (choice) {
+            case 1:
+                printf("Create User chosen\n");
+                createUser();
+                break;
 
-        else if (choice==2){
-            printf("Read User chosen\n");
-            readUser();
-        }
+            case 2:
+                printf("Display Users chosen\n");
+                displayUsers();
+                break;
 
-        else if (choice==3){
-            printf("Update User chosen\n");
-            updateUser();
-        }
+            case 3:
+                printf("Update User chosen\n");
+                updateUser();
+                break;
 
-        else if (choice==4){
-            printf("Delete User chosen\n");
-            deleteUser();
-        }
+            case 4:
+                printf("Delete User chosen\n");
+                deleteUser();
+                break;
 
-        else if (choice==5){
-            printf("Exiting");
-            break;
-        }
+            case 5:
+                printf("Exiting the program\n");
+                return 0;
 
-        else{
-            printf("Wrong Choice Selected");
+            default:
+                printf("Invalid Choice! Please Choose Again.\n");
+                break;       
         }
     }
 
