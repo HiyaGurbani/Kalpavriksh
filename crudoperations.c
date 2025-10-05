@@ -40,7 +40,7 @@ void createUser(){
 
     FILE *usersFile;
     char line[LINE_SIZE];
-    bool idExists = false;
+    bool isIdExists = false;
 
     printf("Enter ID: ");
     scanf("%d", &user.id);
@@ -50,14 +50,14 @@ void createUser(){
     if (usersFile != NULL){
         while (fgets(line, sizeof(line), usersFile)){
             if (parseUserLine(line , &parsedUser) && parsedUser.id == user.id){
-                idExists = true;
+                isIdExists = true;
                 break;
             }
         }
         fclose(usersFile);
     }
 
-    if (idExists){
+    if (isIdExists){
         printf("Error: User with ID %d already exists!\n", user.id);
         return;
     }
@@ -112,7 +112,7 @@ void updateUser(){
     FILE *usersFile, *tempFile;
     char line[LINE_SIZE];
     int id;
-    bool userExists = false;
+    bool isUserExists = false;
     struct User parsedUser;
 
     printf("Enter the ID of the user: ");
@@ -134,7 +134,7 @@ void updateUser(){
     while(fgets(line, sizeof(line), usersFile)){
         if (parseUserLine(line, &parsedUser)){
             if (parsedUser.id == id){
-                userExists = true;
+                isUserExists = true;
                 printf("Enter new name: ");
                 getchar();
                 fgets(parsedUser.name, sizeof(parsedUser.name), stdin);
@@ -150,7 +150,7 @@ void updateUser(){
     fclose(usersFile);
     fclose(tempFile);
 
-    if (userExists){
+    if (isUserExists){
         remove(USER_FILE);
         rename("temp.txt", USER_FILE);
         printf("User updated successfully!\n");
@@ -165,7 +165,7 @@ void deleteUser(){
     FILE *usersFile, *tempFile;
     char line[LINE_SIZE];
     int id;
-    bool userExists = false;
+    bool isUserExists = false;
     struct User parsedUser;
 
     printf("Enter the ID of the user to delete: ");
@@ -187,7 +187,7 @@ void deleteUser(){
     while(fgets(line, sizeof(line), usersFile)){
         if (parseUserLine(line, &parsedUser)){
             if (parsedUser.id == id){
-                userExists = true;
+                isUserExists = true;
             } else {
                 fprintf(tempFile, "%d %s %d\n", parsedUser.id, parsedUser.name, parsedUser.age);
             }
@@ -197,7 +197,7 @@ void deleteUser(){
     fclose(usersFile);
     fclose(tempFile);
 
-    if (userExists){
+    if (isUserExists){
         remove(USER_FILE);
         rename("temp.txt", USER_FILE);
         printf("User deleted successfully!\n");
