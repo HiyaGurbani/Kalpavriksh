@@ -7,7 +7,7 @@
 #define MAX_SIZE 1000
 
 
-int isValidExpression(char expression[]){  
+bool isValidExpression(char expression[]){  
     for (int charIndex=0 ; charIndex<strlen(expression) ; charIndex++){
         if (expression[charIndex] == '\n') continue;
         if (!((expression[charIndex]>='0' && expression[charIndex]<='9') || 
@@ -15,13 +15,13 @@ int isValidExpression(char expression[]){
                expression[charIndex]=='*' || expression[charIndex]=='/' || 
                expression[charIndex]==' ')){
             printf("Error: Invalid Expression");
-            return 0;
+            return false;
         }
     }
-    return 1;
+    return true;
 }
 
-int isValidSequence(char expression[]){
+bool isValidSequence(char expression[]){
     int length = strlen(expression);
     int hasDigit = 0;
 
@@ -34,17 +34,17 @@ int isValidSequence(char expression[]){
     }
     if (!hasDigit){
         printf("Error: Expression must contain at least one number\n");
-        return 0;
+        return false;
     }
 
-    int lastWasOperator = 1;
+    bool lastWasOperator = true;
     for (int charIndex=0 ; charIndex<length ; charIndex++){
         char currentChar = expression[charIndex];
 
         if (currentChar==' ' || currentChar=='\n') continue;
 
         if (isdigit((unsigned char)currentChar)){
-            lastWasOperator = 0;
+            lastWasOperator = false;
 
             while(charIndex+1 < length && isdigit((unsigned char) expression[charIndex+1])) 
                 charIndex++;
@@ -52,18 +52,18 @@ int isValidSequence(char expression[]){
         else {
             if (lastWasOperator){
                 printf("Error: Invalid Sequence near %c\n", currentChar);
-                return 0;
+                return false;
             }
-            lastWasOperator = 1;
+            lastWasOperator = true;
         }
     }
 
     if (lastWasOperator){
         printf("Error: Expression cannot end with an operator\n");
-        return 0;
+        return false;
     }
 
-    return 1;
+    return true;
 }
 
 int getPrecedence(char operator){
