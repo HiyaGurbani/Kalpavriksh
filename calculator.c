@@ -1,116 +1,166 @@
 #include<stdio.h>
 #include<string.h>
 #include<ctype.h>
+#include<limits.h>
+#include<stdbool.h>
 
-//Step 1: Function to validate string (only a character-level filter)
-int validateString(char s[]){
-    
-    for (int i=0 ; i<strlen(s) ; i++){
-        if (s[i] == '\n') continue;
-        if (!((s[i]>='0' && s[i]<='9') || s[i]=='+' || s[i]=='-' || s[i]=='*' || s[i]=='/' || s[i]==' ')){
+#define MAX_SIZE 1000
+
+
+int isValidExpression(char expression[]){  
+    for (int charIndex=0 ; charIndex<strlen(expression) ; charIndex++){
+        if (expression[charIndex] == '\n') continue;
+        if (!((expression[charIndex]>='0' && expression[charIndex]<='9') || 
+               expression[charIndex]=='+' || expression[charIndex]=='-' || 
+               expression[charIndex]=='*' || expression[charIndex]=='/' || 
+               expression[charIndex]==' ')){
+            printf("Error: Invalid Expression");
             return 0;
         }
     }
     return 1;
 }
 
-int numCount, opCount;
+int isValidSequence(char expression[]){
+    int length = strlen(expression);
+    int hasDigit = 0;
 
-//Step 2: Seperation of numbers & operators and Sequence Validation
-int tokenizeExpression(char input[], int numbers[], char operators[]){
-    int i=0 , n = strlen(input);
-    numCount=0; opCount=0;
-
-    while(i<n){
-        if (isdigit(input[i])){
-            int num=0;
-            while(i<n && isdigit(input[i])){
-                num = num * 10 + (input[i] - '0');
-                i++;
-            }
-            numbers[numCount++] = num;
-        } else if (input[i]=='+' || input[i]=='-' || input[i]=='*' || input[i]=='/'){
-
-            int prev = i - 1, next = i + 1;
-            while (prev >= 0 && (input[prev] == ' ' || input[prev] == '\n')) prev--;
-            while (next < n && (input[next] == ' ' || input[next] == '\n')) next++;
-
-            if (prev<0 || next>=n || !(isdigit(input[next])) || !(isdigit(input[prev]))){
-                printf("Error: Invalid Expression (Sequence is not valid)"); //Sequence isn't valid
-                return 0;
-            } operators[opCount++] = input[i];
-            i++; 
-        } else if (input[i] == ' ' || input[i] == '\n') i++;
-        else return 0; //Edge case: Won't happen as validateString function ensures that
+    //Checking if expression is empty or has only whitespaces
+    for (int i = 0; i < length; i++){
+        if (isdigit((unsigned char)expression[i])){
+            hasDigit = 1;
+            break;
+        }
     }
+    if (!hasDigit){
+        printf("Error: Expression must contain at least one number\n");
+        return 0;
+    }
+
+    int lastWasOperator = 1;
+    for (int charIndex=0 ; charIndex<length ; charIndex++){
+        char currentChar = expression[charIndex];
+
+        if (currentChar==' ' || currentChar=='\n') continue;
+
+        if (isdigit((unsigned char)currentChar)){
+            lastWasOperator = 0;
+
+            while(charIndex+1 < length && isdigit((unsigned char) expression[charIndex+1])) 
+                charIndex++;
+        }
+        else {
+            if (lastWasOperator){
+                printf("Error: Invalid Sequence near %c\n", currentChar);
+                return 0;
+            }
+            lastWasOperator = 1;
+        }
+    }
+
+    if (lastWasOperator){
+        printf("Error: Expression cannot end with an operator\n");
+        return 0;
+    }
+
     return 1;
 }
 
-//Step 3: Calculation
-void calculateResult(int numbers[], char operators[]){
+int getPrecedence(char operator){
+    if (operator == '*' || operator == '/') return 2;
+    if (operator == '+' || operator == '-') return 1;
+    return 0;
+}
 
-    //Higher Precedence : * and /
-    for (int i=0 ; i<opCount ; i++){
-        if (operators[i] == '*' || operators[i] == '/'){
-            if (operators[i] == '*'){
-                numbers[i] = numbers[i]*numbers[i+1];
-            } 
-            else if (operators[i] == '/'){
-                //Edge Case: Division By Zero
-                if (numbers[i+1] == 0){
-                    printf("Error: Division by Zero");
-                    return;
-                }
-                numbers[i] = numbers[i]/numbers[i+1];
+bool divisionByZero = false; 
+long long applyOperation(long long leftOperand , long long rightOperand, char operator){
+    switch(operator){
+        case '+': return leftOperand+rightOperand;
+        case '-': return leftOperand-rightOperand;
+        case '*': return leftOperand*rightOperand;
+        case '/':
+            if (rightOperand==0){
+                printf("Error: Division by Zero\n");
+                divisionByZero = true;
+                return 0;
             }
-
-            //Shift the numbers to left
-            for (int j=i+1 ; j<numCount ; j++){
-                numbers[j] = numbers[j+1];
-            } numCount--;
-
-            //Shift the operators to left
-            for(int j=i ; j<opCount ; j++){
-                operators[j] = operators[j+1];
-            } opCount--;
-
-            i--;
-        } 
+            return leftOperand/rightOperand;
     }
-    
-    //Lower Precedence: + and -
-    int result = numbers[0];
-    for (int i=0 ; i<opCount ; i++){
-        if (operators[i] == '+'){
-            result += numbers[i+1];
+    return 0;
+}
+
+long long evaluateExpression(char expression[]){
+    long long operandStack[MAX_SIZE];
+    int operandTop = -1;
+    char operatorStack[MAX_SIZE];
+    int operatorTop = -1;
+
+    int position = 0, size = strlen(expression);
+
+    //Stack-based Single Pass Evaluation
+    while(position < size){
+        char currentChar = expression[position];
+
+        if (currentChar == ' ' || currentChar == '\n'){
+            position++;
+            continue;
         }
-        else if (operators[i] == '-'){
-            result -= numbers[i+1];
+
+        if (isdigit((unsigned char)currentChar)){
+            long long number = 0;
+            while(position<size && isdigit((unsigned char)expression[position])){
+                number = number*10 + (expression[position]-'0');
+                position++;
+            }
+            operandStack[++operandTop] = number;
+        } else {
+            while(operatorTop >=0 &&
+                  getPrecedence(operatorStack[operatorTop]) >= getPrecedence(currentChar)){
+                    long long rightOperand = operandStack[operandTop--];
+                    long long leftOperand = operandStack[operandTop--];
+                    char operator = operatorStack[operatorTop--];
+                    long long result = applyOperation(leftOperand, rightOperand, operator);
+                    if (divisionByZero) return 0; 
+                    operandStack[++operandTop] = result;
+                  }
+                  operatorStack[++operatorTop] = currentChar;
+                  position++; 
         }
     }
 
-    printf("%d", result);
+    while (operatorTop >= 0){
+        long long rightOperand = operandStack[operandTop--];
+        long long leftOperand = operandStack[operandTop--];
+        char operator = operatorStack[operatorTop--];
+        long long result = applyOperation(leftOperand, rightOperand, operator);
+        if (divisionByZero) return 0; 
+        operandStack[++operandTop] = result;
+    }
 
+    return operandStack[operandTop];
 }
 
 int main(){
-    char input[1000];
-    int numbers[1000];
-    char operators[1000];
+    char input[MAX_SIZE];
 
     printf("Enter Expression: ");
     fgets(input, sizeof(input), stdin);
 
-    if (!validateString(input)){
-        printf("Error: Invalid Expression");
+    if (!isValidExpression(input) || !isValidSequence(input)){
         return 0;
     }
 
-    if (!tokenizeExpression(input, numbers, operators)){
+    long long result = evaluateExpression(input);
+
+    if (divisionByZero) {
         return 0;
     }
 
-    // printf("Validated String: %s",input);
-    calculateResult(numbers, operators);
+    if (result > INT_MAX || result < INT_MIN){
+        printf("Error: Integer Overflow\n");
+        return 0;
+    }
 
+    printf("Result: %d\n", (int)result);
+    return 0;
 }
