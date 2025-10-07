@@ -8,7 +8,7 @@
 
 
 bool isValidExpression(char expression[]){  
-    for (int charIndex=0 ; charIndex<strlen(expression) ; charIndex++){
+    for (int charIndex=0; charIndex<strlen(expression); charIndex++){
         if (expression[charIndex] == '\n') continue;
         if (!((expression[charIndex]>='0' && expression[charIndex]<='9') || 
                expression[charIndex]=='+' || expression[charIndex]=='-' || 
@@ -26,8 +26,8 @@ bool isValidSequence(char expression[]){
     int hasDigit = 0;
 
     //Checking if expression is empty or has only whitespaces
-    for (int i = 0; i < length; i++){
-        if (isdigit((unsigned char)expression[i])){
+    for (int charIndex = 0; charIndex < length; charIndex++){
+        if (isdigit((unsigned char)expression[charIndex])){
             hasDigit = 1;
             break;
         }
@@ -38,7 +38,7 @@ bool isValidSequence(char expression[]){
     }
 
     bool lastWasOperator = true;
-    for (int charIndex=0 ; charIndex<length ; charIndex++){
+    for (int charIndex=0; charIndex<length; charIndex++){
         char currentChar = expression[charIndex];
 
         if (currentChar==' ' || currentChar=='\n') continue;
@@ -46,8 +46,9 @@ bool isValidSequence(char expression[]){
         if (isdigit((unsigned char)currentChar)){
             lastWasOperator = false;
 
-            while(charIndex+1 < length && isdigit((unsigned char) expression[charIndex+1])) 
+            while(charIndex+1 < length && isdigit((unsigned char) expression[charIndex+1])){
                 charIndex++;
+            }
         }
         else {
             if (lastWasOperator){
@@ -72,8 +73,7 @@ int getPrecedence(char operator){
     return 0;
 }
 
-bool divisionByZero = false; 
-long long applyOperation(long long leftOperand , long long rightOperand, char operator){
+long long applyOperation(long long leftOperand , long long rightOperand, char operator, bool *divisionByZero){
     switch(operator){
         case '+': return leftOperand+rightOperand;
         case '-': return leftOperand-rightOperand;
@@ -81,7 +81,7 @@ long long applyOperation(long long leftOperand , long long rightOperand, char op
         case '/':
             if (rightOperand==0){
                 printf("Error: Division by Zero\n");
-                divisionByZero = true;
+                *divisionByZero = true;
                 return 0;
             }
             return leftOperand/rightOperand;
@@ -89,7 +89,7 @@ long long applyOperation(long long leftOperand , long long rightOperand, char op
     return 0;
 }
 
-long long evaluateExpression(char expression[]){
+long long evaluateExpression(char expression[], bool *divisionByZero){
     long long operandStack[MAX_SIZE];
     int operandTop = -1;
     char operatorStack[MAX_SIZE];
@@ -119,8 +119,8 @@ long long evaluateExpression(char expression[]){
                     long long rightOperand = operandStack[operandTop--];
                     long long leftOperand = operandStack[operandTop--];
                     char operator = operatorStack[operatorTop--];
-                    long long result = applyOperation(leftOperand, rightOperand, operator);
-                    if (divisionByZero) return 0; 
+                    long long result = applyOperation(leftOperand, rightOperand, operator, divisionByZero);
+                    if (*divisionByZero) return 0; 
                     operandStack[++operandTop] = result;
                   }
                   operatorStack[++operatorTop] = currentChar;
@@ -132,8 +132,8 @@ long long evaluateExpression(char expression[]){
         long long rightOperand = operandStack[operandTop--];
         long long leftOperand = operandStack[operandTop--];
         char operator = operatorStack[operatorTop--];
-        long long result = applyOperation(leftOperand, rightOperand, operator);
-        if (divisionByZero) return 0; 
+        long long result = applyOperation(leftOperand, rightOperand, operator, divisionByZero);
+        if (*divisionByZero) return 0; 
         operandStack[++operandTop] = result;
     }
 
@@ -142,6 +142,7 @@ long long evaluateExpression(char expression[]){
 
 int main(){
     char input[MAX_SIZE];
+    bool divisionByZero = false;
 
     printf("Enter Expression: ");
     fgets(input, sizeof(input), stdin);
@@ -150,7 +151,7 @@ int main(){
         return 0;
     }
 
-    long long result = evaluateExpression(input);
+    long long result = evaluateExpression(input, &divisionByZero);
 
     if (divisionByZero) {
         return 0;
