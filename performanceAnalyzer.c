@@ -2,6 +2,11 @@
 
 #define NAME_SIZE 100
 
+#define GRADE_A 85
+#define GRADE_B 70
+#define GRADE_C 50
+#define GRADE_D 35
+
 typedef struct {
     unsigned int rollNumber;
     char name[NAME_SIZE];
@@ -29,17 +34,17 @@ void calculateTotalAndAverageMarks(StudentDetails students[], const int index){
 void calculateGrade(StudentDetails students[], const int index){
     if (students[index].averageMarks >= 85)
     {
-        students[index].grade = 'A';
+        students[index].grade = GRADE_A;
     } 
-    else if (students[index].averageMarks >= 70)
+    else if (students[index].averageMarks >= GRADE_B)
     {
         students[index].grade = 'B';
     }
-    else if (students[index].averageMarks >= 50)
+    else if (students[index].averageMarks >= GRADE_C)
     {
         students[index].grade = 'C';
     }
-    else if (students[index].averageMarks >= 35)
+    else if (students[index].averageMarks >= GRADE_D)
     {
         students[index].grade = 'D';
     }
@@ -47,6 +52,59 @@ void calculateGrade(StudentDetails students[], const int index){
     {
         students[index].grade = 'F';
     }
+}
+
+void displayStudentDetails(StudentDetails students[], const int numberOfStudents){
+    for (int index = 0; index < numberOfStudents; index++)
+    {
+        printf("\nRoll: %u\n", students[index].rollNumber);
+        printf("Name: %s\n", students[index].name);
+        printf("Total: %u\n", students[index].totalMarks);
+        printf("Average: %.2f\n", students[index].averageMarks);
+        printf("Grade: %c\n", students[index].grade);
+
+        if (students[index].grade == 'F')
+        {
+            continue;
+        }
+
+        int numberOfStars;
+        switch (students[index].grade) 
+        {
+            case 'A':
+                numberOfStars = 5;
+                break;
+            case 'B':
+                numberOfStars = 4;
+                break;
+            case 'C':
+                numberOfStars = 3;
+                break;
+            case 'D':
+                numberOfStars = 2;
+                break;
+            default:
+                numberOfStars = -1;  
+                printf("Invalid grade for student %d\n", index);
+        }
+
+        printf("Performance: ");
+        for (int starNumber = 0; starNumber < numberOfStars ; starNumber++)
+        {
+            printf("*");
+        }
+        printf("\n");
+    }
+}
+
+void displayRollNumbers(int numberOfStudents){
+    if (numberOfStudents == 0)
+    {
+        return;
+    }
+
+    displayRollNumbers(numberOfStudents-1);
+    printf("%d ", numberOfStudents);
 }
 
 int main(){
@@ -64,5 +122,9 @@ int main(){
         calculateGrade(students, index);
     }
 
+    displayStudentDetails(students, numberOfStudents);
+
+    printf("\nList of Roll Numbers: ");
+    displayRollNumbers(numberOfStudents);
     return 0;
 }
