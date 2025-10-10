@@ -5,6 +5,7 @@
 #define STAR_SIZE 6
 
 #define MAX_MARKS 100
+#define MIN_MARKS 0
 #define GRADE_A 85
 #define GRADE_B 70
 #define GRADE_C 50
@@ -59,7 +60,7 @@ void calculateGrade(StudentDetails *student){
         student->grade = 'D';
         strcpy (student->performance, "**");
     }
-    else 
+    else if (student->averageMarks < GRADE_D && student->averageMarks >= MIN_MARKS )
     {
         student->grade = 'F';
         strcpy (student->performance, "");
