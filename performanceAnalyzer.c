@@ -2,7 +2,9 @@
 #include<string.h>
 
 #define NAME_SIZE 100
+#define STAR_SIZE 6
 
+#define MAX_MARKS 100
 #define GRADE_A 85
 #define GRADE_B 70
 #define GRADE_C 50
@@ -17,41 +19,50 @@ typedef struct {
     unsigned int totalMarks;
     float averageMarks;
     unsigned char grade;
+    char performance[STAR_SIZE];
 } StudentDetails;
 
-void getStudentDetails(StudentDetails students[], const int index){
-    scanf ("%u", &students[index].rollNumber);
-    scanf ("%s", &students[index].name);
-    scanf ("%u", &students[index].marksSubject1);
-    scanf ("%u", &students[index].marksSubject2);
-    scanf ("%u", &students[index].marksSubject3);
+void getStudentDetails(StudentDetails *student){
+    scanf ("%u", &student->rollNumber);
+    scanf ("%s", &student->name);
+    scanf ("%u", &student->marksSubject1);
+    scanf ("%u", &student->marksSubject2);
+    scanf ("%u", &student->marksSubject3);
 }
 
-void calculateTotalAndAverageMarks(StudentDetails students[], const int index){
-    students[index].totalMarks = students[index].marksSubject1 + students[index].marksSubject2 + students[index].marksSubject3;
-    students[index].averageMarks = students[index].totalMarks / 3.0;
+void calculateTotalMarks(StudentDetails *student){
+    student->totalMarks = student->marksSubject1 + student->marksSubject2 + student->marksSubject3;
 }
 
-void calculateGrade(StudentDetails students[], const int index){
-    if (students[index].averageMarks >= GRADE_A)
+void calculateAverageMarks(StudentDetails *student){
+    student->averageMarks = student->totalMarks / 3.0;
+}
+
+void calculateGrade(StudentDetails *student){
+    if (student->averageMarks >= GRADE_A && student->averageMarks <= MAX_MARKS)
     {
-        students[index].grade = 'A';
+        student->grade = 'A';
+        strcpy (student->performance, "*****");
     } 
-    else if (students[index].averageMarks >= GRADE_B)
+    else if (student->averageMarks >= GRADE_B)
     {
-        students[index].grade = 'B';
+        student->grade = 'B';
+        strcpy (student->performance, "****");
     }
-    else if (students[index].averageMarks >= GRADE_C)
+    else if (student->averageMarks >= GRADE_C)
     {
-        students[index].grade = 'C';
+        student->grade = 'C';
+        strcpy (student->performance, "***");
     }
-    else if (students[index].averageMarks >= GRADE_D)
+    else if (student->averageMarks >= GRADE_D)
     {
-        students[index].grade = 'D';
+        student->grade = 'D';
+        strcpy (student->performance, "**");
     }
     else 
     {
-        students[index].grade = 'F';
+        student->grade = 'F';
+        strcpy (student->performance, "");
     }
 }
 
@@ -69,32 +80,8 @@ void displayStudentDetails(StudentDetails students[], const int numberOfStudents
             continue;
         }
 
-        int numberOfStars;
-        switch (students[index].grade) 
-        {
-            case 'A':
-                numberOfStars = 5;
-                break;
-            case 'B':
-                numberOfStars = 4;
-                break;
-            case 'C':
-                numberOfStars = 3;
-                break;
-            case 'D':
-                numberOfStars = 2;
-                break;
-            default:
-                numberOfStars = -1;  
-                printf("Invalid grade for student %d\n", index);
-        }
-
-        printf("Performance: ");
-        for (int starNumber = 0; starNumber < numberOfStars ; starNumber++)
-        {
-            printf("*");
-        }
-        printf("\n");
+        printf("Performance: %s\n", students[index].performance);
+        
     }
 }
 
@@ -110,17 +97,19 @@ void displayRollNumbers(StudentDetails students[], int numberOfStudents){
 
 int main(){
     unsigned int numberOfStudents;
-    scanf ("%d", &numberOfStudents);
+    scanf ("%u", &numberOfStudents);
 
     StudentDetails students[numberOfStudents];
 
     for (int index = 0; index < numberOfStudents; index++)
     {
-        getStudentDetails(students, index);
+        getStudentDetails(&students[index]);
         
-        calculateTotalAndAverageMarks(students, index);
+        calculateTotalMarks(&students[index]);
 
-        calculateGrade(students, index);
+        calculateAverageMarks(&students[index]);
+
+        calculateGrade(&students[index]);
     }
 
     displayStudentDetails(students, numberOfStudents);
