@@ -1,4 +1,5 @@
 #include<stdio.h>
+#include<string.h>
 
 #define NAME_SIZE 100
 
@@ -32,9 +33,9 @@ void calculateTotalAndAverageMarks(StudentDetails students[], const int index){
 }
 
 void calculateGrade(StudentDetails students[], const int index){
-    if (students[index].averageMarks >= 85)
+    if (students[index].averageMarks >= GRADE_A)
     {
-        students[index].grade = GRADE_A;
+        students[index].grade = 'A';
     } 
     else if (students[index].averageMarks >= GRADE_B)
     {
@@ -97,14 +98,14 @@ void displayStudentDetails(StudentDetails students[], const int numberOfStudents
     }
 }
 
-void displayRollNumbers(int numberOfStudents){
+void displayRollNumbers(StudentDetails students[], int numberOfStudents){
     if (numberOfStudents == 0)
     {
         return;
     }
 
-    displayRollNumbers(numberOfStudents-1);
-    printf("%d ", numberOfStudents);
+    displayRollNumbers(students, numberOfStudents-1);
+    printf("%d ", students[numberOfStudents-1].rollNumber);
 }
 
 int main(){
@@ -125,6 +126,6 @@ int main(){
     displayStudentDetails(students, numberOfStudents);
 
     printf("\nList of Roll Numbers: ");
-    displayRollNumbers(numberOfStudents);
+    displayRollNumbers(students, numberOfStudents);
     return 0;
 }
