@@ -105,7 +105,7 @@ void displayRollNumbers(StudentDetails students[], int numberOfStudents){
     }
 
     displayRollNumbers(students, numberOfStudents-1);
-    printf("%d ", students[numberOfStudents-1].rollNumber);
+    printf("%u ", students[numberOfStudents-1].rollNumber);
 }
 
 int main(){
@@ -127,5 +127,7 @@ int main(){
 
     printf("\nList of Roll Numbers: ");
     displayRollNumbers(students, numberOfStudents);
+    printf("\n");
+    
     return 0;
 }
