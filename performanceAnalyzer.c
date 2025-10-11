@@ -55,7 +55,7 @@ void calculateAverageMarks(StudentDetails *student){
 }
 
 void calculateGrade(StudentDetails *student){
-    if (student->averageMarks < 0.0f || student->averageMarks > 100.0f) {
+    if (student->averageMarks < MIN_MARKS || student->averageMarks > MAX_MARKS) {
         printf("Warning: Invalid average %.2f detected for Roll No %u\n",
             student->averageMarks, student->rollNumber);
         student->grade = 'X';
