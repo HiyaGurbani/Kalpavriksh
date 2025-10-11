@@ -3,7 +3,9 @@
 
 #define NAME_SIZE 100
 #define STAR_SIZE 6
+#define MIN_ROLL_NUMBER 1
 
+#define TOTAL_SUBJECTS 3
 #define MAX_MARKS 100
 #define MIN_MARKS 0
 #define GRADE_A 85
@@ -24,11 +26,24 @@ typedef struct {
 } StudentDetails;
 
 void getStudentDetails(StudentDetails *student){
-    scanf ("%u", &student->rollNumber);
-    scanf ("%s", &student->name);
-    scanf ("%u", &student->marksSubject1);
-    scanf ("%u", &student->marksSubject2);
-    scanf ("%u", &student->marksSubject3);
+    while (1) {
+        scanf("%u", &student->rollNumber);
+        scanf("%s", student->name);
+        scanf("%u %u %u", &student->marksSubject1, &student->marksSubject2, &student->marksSubject3);
+
+        if (student->rollNumber < MIN_ROLL_NUMBER) {
+            printf("Entered Roll Number is invalid. Please enter again.\n");
+            continue;
+        }
+
+        if (student->marksSubject1 > MAX_MARKS || student->marksSubject2 > MAX_MARKS || student->marksSubject3 > MAX_MARKS ||
+            student->marksSubject1 < MIN_MARKS || student->marksSubject2 < MIN_MARKS || student->marksSubject3 < MIN_MARKS) {
+            printf("Entered marks are incorrect. Please enter again in a range of 1-100.\n");
+            continue;
+        }
+
+        break;
+    }
 }
 
 void calculateTotalMarks(StudentDetails *student){
@@ -36,10 +51,18 @@ void calculateTotalMarks(StudentDetails *student){
 }
 
 void calculateAverageMarks(StudentDetails *student){
-    student->averageMarks = student->totalMarks / 3.0;
+    student->averageMarks = (float) student->totalMarks / TOTAL_SUBJECTS;
 }
 
 void calculateGrade(StudentDetails *student){
+    if (student->averageMarks < 0.0f || student->averageMarks > 100.0f) {
+        printf("Warning: Invalid average %.2f detected for Roll No %u\n",
+            student->averageMarks, student->rollNumber);
+        student->grade = 'X';
+        strcpy(student->performance, "");
+        return;
+    }
+
     if (student->averageMarks >= GRADE_A && student->averageMarks <= MAX_MARKS)
     {
         student->grade = 'A';
