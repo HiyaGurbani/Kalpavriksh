@@ -40,6 +40,32 @@ void generateMatrix(const unsigned int size, int matrix[size][size]){
     }
 }
 
+void rotateMatrix90Clockwise(unsigned int size, int (*matrix)[size]){
+    for (unsigned int layer = 0; layer < size / 2; layer++) 
+    {
+        unsigned int first = layer;
+        unsigned int last = size - 1 - layer;
+
+        for (unsigned int index = first; index < last; index++)
+        {
+            unsigned int offset = index - first;
+
+            //Getting element addresses via Pointer Aritmetic
+            int *top = (*(matrix + first)) + index;
+            int *left   = (*(matrix + (last - offset))) + first;
+            int *bottom = (*(matrix + last)) + (last - offset);
+            int *right  = (*(matrix + index)) + last;
+
+            //Rotating four pointers' clockwise
+            int temp = *top;
+            *top = *left;
+            *left = *bottom;
+            *bottom = *right;
+            *right = temp;
+        }
+    }
+}
+
 void displayMatrix(const unsigned int size, int matrix[size][size]){
     int *firstElementPtr = &matrix[0][0];
 
@@ -63,6 +89,10 @@ int main () {
     generateMatrix(matrixSize, matrix);
 
     printf("\nOriginal Randomly Generated Matrix: \n");
+    displayMatrix(matrixSize, matrix);
+
+    printf("\nMatrix after 90 Degree Clockwise Rotation: \n");
+    rotateMatrix90Clockwise(matrixSize, matrix);
     displayMatrix(matrixSize, matrix);
 
 }
