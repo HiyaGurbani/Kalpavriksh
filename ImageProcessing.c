@@ -50,7 +50,7 @@ void rotateMatrix90Clockwise(unsigned int size, int (*matrix)[size]){
         {
             unsigned int offset = index - first;
 
-            //Getting element addresses via Pointer Aritmetic
+            //Getting current group element addresses via Pointer Aritmetic
             int *top = (*(matrix + first)) + index;
             int *left   = (*(matrix + (last - offset))) + first;
             int *bottom = (*(matrix + last)) + (last - offset);
@@ -66,6 +66,52 @@ void rotateMatrix90Clockwise(unsigned int size, int (*matrix)[size]){
     }
 }
 
+void applySmoothingFilter(unsigned int size, int matrix[size][size]){
+    for (unsigned int row = 0; row < size; row++)
+    {
+        for (unsigned int col = 0; col < size; col++)
+        {
+            int sum = 0, count = 0;
+
+            for (int deltaRow = -1; deltaRow <= 1; deltaRow++)
+            {
+                for (int deltaCol = -1; deltaCol <= 1; deltaCol++)
+                {
+                    int neighborRow = (int)row + deltaRow;
+                    int neighborCol = (int)col + deltaCol;
+
+                    if (neighborRow >= 0 && neighborRow < (int)size && neighborCol >= 0 && neighborCol < (int)size)
+                    {
+                        int *neighborPtr = (*(matrix + neighborRow)) + neighborCol;
+                        int originalVal = (*neighborPtr) & 0xFF;
+                        sum += originalVal;
+                        count++;
+                    }
+                }
+            }
+
+            int smoothenedVal = sum / count;
+            int *cellPtr = (*(matrix + row)) + col;
+
+            //Storing Smoothened Value in uppper 8 bits and keeping old value intact in lower 8 bits
+            *cellPtr = ((*cellPtr) & 0xFF) | ((smoothenedVal & 0xFF) << 8);
+        }
+    }
+
+    //Extracting the new values
+    for (unsigned int row = 0; row < size; row++)
+    {
+        for (unsigned int col = 0; col < size; col++)
+        {
+            int *cellPtr = (*(matrix + row)) + col;
+            int packedVal = *cellPtr;
+            int decodedVal = (packedVal >> 8) & 0xFF;
+            *cellPtr = decodedVal;
+        }
+    }
+}
+
+
 void displayMatrix(const unsigned int size, int matrix[size][size]){
     int *firstElementPtr = &matrix[0][0];
 
@@ -73,7 +119,7 @@ void displayMatrix(const unsigned int size, int matrix[size][size]){
     {
         for (int col = 0; col < size; col++)
         {
-            printf("%d ", *(firstElementPtr + row * size + col));
+            printf("%3d ", *(firstElementPtr + row * size + col));
         }
         printf("\n");
     }
@@ -95,4 +141,7 @@ int main () {
     rotateMatrix90Clockwise(matrixSize, matrix);
     displayMatrix(matrixSize, matrix);
 
+    printf("\nMatrix after Applying 3*3 Smoothing Filter: \n");
+    applySmoothingFilter(matrixSize, matrix);
+    displayMatrix(matrixSize, matrix);
 }
