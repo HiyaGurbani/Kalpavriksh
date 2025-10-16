@@ -72,7 +72,8 @@ void applySmoothingFilter(unsigned int size, int matrix[size][size]){
         for (unsigned int col = 0; col < size; col++)
         {
             int sum = 0, count = 0;
-
+            
+            //Traversing all the neighbors and number itself
             for (int deltaRow = -1; deltaRow <= 1; deltaRow++)
             {
                 for (int deltaCol = -1; deltaCol <= 1; deltaCol++)
