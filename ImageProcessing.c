@@ -35,7 +35,7 @@ void generateMatrix(const unsigned int size, int matrix[size][size]){
     {
         for (int col = 0; col < size; col++)
         {
-            matrix[row][col] = (rand() % (MAX_INTENSITY - MIN_INTENSITY + 1)) + MIN_INTENSITY;
+            *(*(matrix + row) + col) = (rand() % (MAX_INTENSITY - MIN_INTENSITY + 1)) + MIN_INTENSITY;
         }
     }
 }
