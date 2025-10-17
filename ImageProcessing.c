@@ -1,8 +1,8 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <time.h>
+#include <stdbool.h>
 
-#define True 1
 #define MIN_MATRIX_SIZE 2
 #define MAX_MATRIX_SIZE 10
 #define MIN_INTENSITY 0
@@ -11,7 +11,7 @@
 void getMatrixSize (unsigned int* matrixSize) {
     printf ("Enter Matrix Size (2-10): ");
 
-    while (True)
+    while (true)
     {
         if (scanf ("%u", matrixSize) != 1)
         {
@@ -43,8 +43,7 @@ void generateMatrix(const unsigned int size, int matrix[size][size]){
 void rotateMatrix90Clockwise(unsigned int size, int (*matrix)[size]){
     for (unsigned int layer = 0; layer < size / 2; layer++) 
     {
-        unsigned int first = layer;
-        unsigned int last = size - 1 - layer;
+        unsigned int first = layer, last = size - 1 - layer;
 
         for (unsigned int index = first; index < last; index++)
         {
@@ -83,19 +82,17 @@ void applySmoothingFilter(unsigned int size, int matrix[size][size]){
 
                     if (neighborRow >= 0 && neighborRow < (int)size && neighborCol >= 0 && neighborCol < (int)size)
                     {
-                        int *neighborPtr = (*(matrix + neighborRow)) + neighborCol;
-                        int originalVal = (*neighborPtr) & 0xFF;
-                        sum += originalVal;
+                        int *neighbor = (*(matrix + neighborRow)) + neighborCol;
+                        sum += ((*neighbor) & 0xFF);
                         count++;
                     }
                 }
             }
 
-            int smoothenedVal = sum / count;
-            int *cellPtr = (*(matrix + row)) + col;
+            int *cell = (*(matrix + row)) + col;
 
             //Storing Smoothened Value in uppper 8 bits and keeping old value intact in lower 8 bits
-            *cellPtr = ((*cellPtr) & 0xFF) | ((smoothenedVal & 0xFF) << 8);
+            *cell = ((*cell) & 0xFF) | (((sum / count) & 0xFF) << 8);
         }
     }
 
@@ -104,28 +101,22 @@ void applySmoothingFilter(unsigned int size, int matrix[size][size]){
     {
         for (unsigned int col = 0; col < size; col++)
         {
-            int *cellPtr = (*(matrix + row)) + col;
-            int packedVal = *cellPtr;
-            int decodedVal = (packedVal >> 8) & 0xFF;
-            *cellPtr = decodedVal;
+            int *cell = (*(matrix + row)) + col;
+            *cell = (*cell >> 8) & 0xFF;
         }
     }
 }
 
-
 void displayMatrix(const unsigned int size, int matrix[size][size]){
-    int *firstElementPtr = &matrix[0][0];
-
     for (int row = 0; row < size; row++)
     {
         for (int col = 0; col < size; col++)
         {
-            printf("%3d ", *(firstElementPtr + row * size + col));
+            printf("%3d ", *(*(matrix + row ) + col));
         }
         printf("\n");
     }
 }
-
 
 int main () {
     unsigned int matrixSize;
