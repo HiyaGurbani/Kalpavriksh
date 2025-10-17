@@ -27,6 +27,45 @@ void getMatrixSize(unsigned int* size){
     }
 }
 
+void spiralMatrix(const unsigned int size, int matrix[size][size]){
+    int top = 0, bottom = size - 1;
+    int left = 0, right = size - 1;
+    unsigned int val = 1;
+
+    while (top <= bottom && left <= right )
+    {
+        for (int index = left; index <= right; index++)
+        {
+            *(*(matrix + top) + index) = val++;
+        } 
+        top++;
+
+        for (int index = top; index <= bottom; index++)
+        {
+            *(*(matrix + index) + right) = val++;
+        } 
+        right--;
+
+        if (top <= bottom)
+        {
+            for (int index = right; index >= left; index--)
+            {
+                *(*(matrix + bottom) + index) = val++;
+            } 
+            bottom--;
+        }
+
+        if (left <= right)
+        {
+            for (int index = bottom; index >= top; index--)
+            {
+                *(*(matrix + index) + left) = val++;
+            } 
+            left++;
+        }
+    }
+}
+
 void displayMatrix(const unsigned int size, int matrix[size][size]){
     for (int row = 0; row < size; row++)
     {
@@ -43,6 +82,6 @@ int main(){
     getMatrixSize(&size);
 
     int matrix[size][size];
-    
+    spiralMatrix(size, matrix);
     displayMatrix(size, matrix);
 }
