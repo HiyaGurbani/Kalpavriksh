@@ -7,6 +7,7 @@
 #define MAX_MATRIX_SIZE 10
 #define MIN_INTENSITY 0
 #define MAX_INTENSITY 255
+#define BYTE_MASK 0xFF
 
 void getMatrixSize (unsigned int* matrixSize) {
     printf ("Enter Matrix Size (2-10): ");
@@ -83,7 +84,7 @@ void applySmoothingFilter(unsigned int size, int matrix[size][size]){
                     if (neighborRow >= 0 && neighborRow < (int)size && neighborCol >= 0 && neighborCol < (int)size)
                     {
                         int *neighbor = (*(matrix + neighborRow)) + neighborCol;
-                        sum += ((*neighbor) & 0xFF);
+                        sum += ((*neighbor) & BYTE_MASK);
                         count++;
                     }
                 }
@@ -92,7 +93,7 @@ void applySmoothingFilter(unsigned int size, int matrix[size][size]){
             int *cell = (*(matrix + row)) + col;
 
             //Storing Smoothened Value in uppper 8 bits and keeping old value intact in lower 8 bits
-            *cell = ((*cell) & 0xFF) | (((sum / count) & 0xFF) << 8);
+            *cell = ((*cell) & BYTE_MASK) | (((sum / count) & BYTE_MASK) << 8);
         }
     }
 
@@ -102,7 +103,7 @@ void applySmoothingFilter(unsigned int size, int matrix[size][size]){
         for (unsigned int col = 0; col < size; col++)
         {
             int *cell = (*(matrix + row)) + col;
-            *cell = (*cell >> 8) & 0xFF;
+            *cell = (*cell >> 8) & BYTE_MASK;
         }
     }
 }
