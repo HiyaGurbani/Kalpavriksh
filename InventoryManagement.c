@@ -83,7 +83,7 @@ void viewProducts (Product *products, const unsigned int size){
 
 void updateQuantity (Product *products, const unsigned int size){
     unsigned int currentId;
-    bool isProductExists = false;
+    bool isIdExists = false;
     printf ("\nEnter Product ID to update quantity: ");
     scanf ("%u", &currentId);
 
@@ -94,14 +94,67 @@ void updateQuantity (Product *products, const unsigned int size){
             printf ("Enter new Quantity: ");
             scanf ("%u", &products[index].quantity);
             printf("Quantity updated successfully!\n");
-            isProductExists = true;
+            isIdExists = true;
+        }
+    }
+
+    if (!isIdExists)
+    {
+        printf ("The entered Product ID doesn't exist.\n");
+    }
+}
+
+void searchProductById (Product *products, const unsigned int size) {
+    unsigned int currentId;
+    bool isIdExists = false;
+    printf ("\nEnter Product ID to search: ");
+    scanf ("%u", &currentId);
+    
+    for (int index = 0; index < size; index++)
+    {
+        if (products[index].id == currentId)
+        {
+            printf("Product Found: Product ID: %u | Product Name: %s | Price: %.2f | Quantity: %u\n",
+                products[index].id, products[index].name, products[index].price, products[index].quantity);
+            isIdExists = true;
+        }
+    }
+
+    if (!isIdExists)
+    {
+        printf ("Product Not Found.\n");
+    }
+}
+
+void searchProductByRange (Product *products, const unsigned int size) {
+    unsigned int minPrice, maxPrice;
+    bool isProductExists = false;
+
+    printf ("\nEnter minimun price: ");
+    scanf ("%u", &minPrice);
+    printf("Enter maximum price: ");
+    scanf ("%u", &maxPrice);
+
+    for (int index = 0; index < size; index++)
+    {
+        if (products[index].price >= minPrice && products[index].price <= maxPrice)
+        {
+            if (!isProductExists)
+            {
+                printf("\nProducts in price range: \n");
+                isProductExists = true;
+            }
+            printf("Product ID: %u | Product Name: %s | Price: %.2f | Quantity: %u\n",
+                products[index].id, products[index].name, products[index].price, products[index].quantity);
+            
         }
     }
 
     if (!isProductExists)
     {
-        printf ("The entered Product ID doesn't exist.\n");
+        printf ("No Product in Price Range.\n");
     }
+
 }
 
 int main () {
@@ -153,12 +206,14 @@ int main () {
                 break;
 
             case 4:
+                searchProductById(products, size);
                 break;
 
             case 5:
                 break;
 
             case 6:
+                searchProductByRange(products, size);
                 break;
 
             case 7:
