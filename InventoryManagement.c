@@ -18,7 +18,7 @@ Product* getProductsDetails(const unsigned int initialNumber) {
     if (initialProducts == NULL) 
     {
         printf("Error Allocating Memory");
-        return initialProducts;
+        return NULL;
     }
 
     for (int index = 0; index < initialNumber; index++)
@@ -43,30 +43,65 @@ Product* getProductsDetails(const unsigned int initialNumber) {
     return initialProducts;
 }
 
-void addNewProduct(Product *products, unsigned int *size) {
+Product* addNewProduct(Product *products, unsigned int *size) {
     products = realloc (products, (++(*size)) * sizeof(Product));
     if (products == NULL) 
     {
         (*size)--;
         printf("Memory allocation failed!\n");
-        return products;
+        return NULL;
     }
 
-    printf("Enter new product details: ");
+    printf("\nEnter new product details: ");
     printf ("\nProduct ID: ");
-    scanf ("%u", &products[*size].id);
+    scanf ("%u", &products[*size-1].id);
 
     printf ("Product Name: ");
     while (getchar() != '\n');
-    fgets (products[*size].name, sizeof(products[*size].name), stdin);
-    products[*size].name[strcspn(products[*size].name, "\n")] = '\0';
+    fgets (products[*size-1].name, sizeof(products[*size-1].name), stdin);
+    products[*size-1].name[strcspn(products[*size-1].name, "\n")] = '\0';
 
     printf ("Product Price: ");
-    scanf ("%f", &products[*size].price);
+    scanf ("%f", &products[*size-1].price);
 
     printf ("Product Quantity: ");
-    scanf ("%u", &products[*size].quantity);
+    scanf ("%u", &products[*size-1].quantity);
 
+    printf("Product added successfully!\n");
+
+    return products;
+}
+
+void viewProducts (Product *products, const unsigned int size){
+    printf("\n=========PRODUCT LIST=========\n");
+    for (int index = 0; index < size; index++)
+    {
+        printf("Product ID: %u | Product Name: %s | Price: %.2f | Quantity: %u\n",
+                products[index].id, products[index].name, products[index].price, products[index].quantity);
+    }
+}
+
+void updateQuantity (Product *products, const unsigned int size){
+    unsigned int currentId;
+    bool isProductExists = false;
+    printf ("\nEnter Product ID to update quantity: ");
+    scanf ("%u", &currentId);
+
+    for (int index = 0; index < size; index++)
+    {
+        if (products[index].id == currentId)
+        {
+            printf ("Enter new Quantity: ");
+            scanf ("%u", &products[index].quantity);
+            printf("Quantity updated successfully!\n");
+            isProductExists = true;
+        }
+    }
+
+    if (!isProductExists)
+    {
+        printf ("The entered Product ID doesn't exist.\n");
+    }
 }
 
 int main () {
@@ -94,7 +129,7 @@ int main () {
                 "5. Search Product by Name\n"
                 "6. Search Product by Price Range\n"
                 "7. Delete Product\n"
-                "8. Exit");
+                "8. Exit\n");
 
         printf("Enter your choice: ");
         scanf("%u", &choice);
@@ -102,13 +137,19 @@ int main () {
         switch (choice)
         {
             case 1:
-                addNewProduct(products, &size);
+                products = addNewProduct(products, &size);
+                if (products == NULL)
+                {
+                    printf("Error in memory allocation.");
+                }
                 break;
             
             case 2:
+                viewProducts(products, size);
                 break;
             
             case 3:
+                updateQuantity(products, size);
                 break;
 
             case 4:
