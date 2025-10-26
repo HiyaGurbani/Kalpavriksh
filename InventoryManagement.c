@@ -43,38 +43,42 @@ Product* getProductsDetails(const unsigned int initialNumber) {
     return initialProducts;
 }
 
-Product* addNewProduct(Product *products, unsigned int *size) {
-    products = realloc (products, (++(*size)) * sizeof(Product));
-    if (products == NULL) 
+bool addNewProduct(Product **products, unsigned int *size) {
+    Product *temporary = realloc (*products, (*size+1) * sizeof(Product));
+    if (temporary == NULL) 
     {
-        (*size)--;
-        printf("Memory allocation failed!\n");
-        return NULL;
+        return false;
     }
+    *products = temporary;
+    (*size)++;
 
     printf("\nEnter new product details: ");
     printf ("\nProduct ID: ");
-    scanf ("%u", &products[*size-1].id);
+    scanf ("%u", &(*products)[*size-1].id);
 
     printf ("Product Name: ");
     while (getchar() != '\n');
-    fgets (products[*size-1].name, sizeof(products[*size-1].name), stdin);
-    products[*size-1].name[strcspn(products[*size-1].name, "\n")] = '\0';
+    fgets ((*products)[*size-1].name, sizeof((*products)[*size-1].name), stdin);
+    (*products)[*size-1].name[strcspn((*products)[*size-1].name, "\n")] = '\0';
 
     printf ("Product Price: ");
-    scanf ("%f", &products[*size-1].price);
+    scanf ("%f", &(*products)[*size-1].price);
 
     printf ("Product Quantity: ");
-    scanf ("%u", &products[*size-1].quantity);
+    scanf ("%u", &(*products)[*size-1].quantity);
 
     printf("Product added successfully!\n");
 
-    return products;
+    return true;
 }
 
 void viewProducts (Product *products, const unsigned int size){
+    if (size == 0)
+    {
+        printf ("No Products Exist. Add new product first.");
+    }
     printf("\n=========PRODUCT LIST=========\n");
-    for (int index = 0; index < size; index++)
+    for (unsigned int index = 0; index < size; index++)
     {
         printf("Product ID: %u | Product Name: %s | Price: %.2f | Quantity: %u\n",
                 products[index].id, products[index].name, products[index].price, products[index].quantity);
@@ -87,7 +91,7 @@ void updateQuantity (Product *products, const unsigned int size){
     printf ("\nEnter Product ID to update quantity: ");
     scanf ("%u", &currentId);
 
-    for (int index = 0; index < size; index++)
+    for (unsigned int index = 0; index < size; index++)
     {
         if (products[index].id == currentId)
         {
@@ -110,7 +114,7 @@ void searchProductById (Product *products, const unsigned int size) {
     printf ("\nEnter Product ID to search: ");
     scanf ("%u", &currentId);
     
-    for (int index = 0; index < size; index++)
+    for (unsigned int index = 0; index < size; index++)
     {
         if (products[index].id == currentId)
         {
@@ -126,6 +130,48 @@ void searchProductById (Product *products, const unsigned int size) {
     }
 }
 
+//Helper Function
+bool compareName (char *name1, char *name2) {
+    while (*name2 != '\0')
+    {   
+        if (*name1 != *name2)
+        {
+            return false;
+        } 
+        name2++;
+        name1++;
+    }
+    return true;
+}
+ 
+void searchProductByName (Product *products, const unsigned int size) {
+    char currentName[NAME_SIZE];
+    printf ("\nEnter name to search (partial allowed): ");
+    fgets (currentName, sizeof(currentName), stdin);
+    currentName[strcspn(currentName, "\n")] = '\0';
+
+    bool isNameExists = false;
+
+    for (int index = 0; index < size; index++)
+    {
+        if (compareName(products[index].name, currentName))
+        {
+            if (!isNameExists)
+            {
+                printf("\nProducts Found: \n");
+                isNameExists = true;
+            }
+            printf("Product ID: %u | Product Name: %s | Price: %.2f | Quantity: %u\n",
+                products[index].id, products[index].name, products[index].price, products[index].quantity);
+        }
+    }
+
+    if (!isNameExists)
+    {
+        printf ("Product Not Found.\n");
+    }
+}
+
 void searchProductByRange (Product *products, const unsigned int size) {
     unsigned int minPrice, maxPrice;
     bool isProductExists = false;
@@ -135,7 +181,7 @@ void searchProductByRange (Product *products, const unsigned int size) {
     printf("Enter maximum price: ");
     scanf ("%u", &maxPrice);
 
-    for (int index = 0; index < size; index++)
+    for (unsigned int index = 0; index < size; index++)
     {
         if (products[index].price >= minPrice && products[index].price <= maxPrice)
         {
@@ -146,7 +192,6 @@ void searchProductByRange (Product *products, const unsigned int size) {
             }
             printf("Product ID: %u | Product Name: %s | Price: %.2f | Quantity: %u\n",
                 products[index].id, products[index].name, products[index].price, products[index].quantity);
-            
         }
     }
 
@@ -155,6 +200,52 @@ void searchProductByRange (Product *products, const unsigned int size) {
         printf ("No Product in Price Range.\n");
     }
 
+}
+
+Product* deleteProduct(Product *products, unsigned int *size) {
+    unsigned int currentId;
+    printf ("\nEnter Product ID to delete: ");
+    scanf ("%u", &currentId);
+
+    bool isIdExists = false;
+
+    for (unsigned int index = 0; index < *size; index++)
+    {
+        if (products[index].id == currentId)
+        {
+            isIdExists = true;
+            for (unsigned int shiftIndex = index; shiftIndex < *size - 1; shiftIndex)
+            {
+                products[shiftIndex] = products[shiftIndex + 1];
+            }
+            (*size)--;
+            printf ("Product Deleted Successfully.\n");
+            break;
+        }
+    }
+
+    if (!isIdExists)
+    {
+        printf("Product Not Found.\n");
+        return products;
+    }
+
+    if (*size == 0)
+    {
+        free (products);
+        products = NULL;
+        return NULL;
+    } 
+
+    //Attempting to shrink the memory 
+    Product *temporary = realloc (products, (*size) * sizeof(Product));
+    if (temporary == NULL)
+    {
+        printf("Warning: Memory reallocation failed. Array size not reduced, but deletion successful.\n");
+        return products;
+    }
+
+    return temporary;  
 }
 
 int main () {
@@ -190,10 +281,9 @@ int main () {
         switch (choice)
         {
             case 1:
-                products = addNewProduct(products, &size);
-                if (products == NULL)
+                if (!addNewProduct(&products, &size))
                 {
-                    printf("Error in memory allocation.");
+                    printf("Memory allocation failed. Please try again.\n");
                 }
                 break;
             
@@ -210,6 +300,7 @@ int main () {
                 break;
 
             case 5:
+                searchProductByName(products, size);
                 break;
 
             case 6:
@@ -217,9 +308,17 @@ int main () {
                 break;
 
             case 7:
+                // if (!deleteProduct(&products, &size))
+                // {
+                //     printf("Warning: Memory reallocation failed. Array size not reduced, but deletion successful.\n");
+                // }
+                products = deleteProduct(products, &size);
                 break;
 
             case 8:
+                free (products);
+                products = NULL;
+                printf ("Memory released successfully. Exiting program...");
                 break;
 
             default:
