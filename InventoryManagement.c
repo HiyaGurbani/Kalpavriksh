@@ -264,7 +264,7 @@ void searchProductById (Product *products, const unsigned int totalProducts) {
 bool compareName (char *fullName, char *prefix) {
     while (*prefix != '\0')
     {   
-        if (*fullName != *prefix)
+        if (tolower((unsigned char)*fullName) != tolower((unsigned char)*prefix))
         {
             return false;
         } 
@@ -339,7 +339,7 @@ Product* deleteProduct(Product *products, unsigned int *totalProducts) {
     printf ("\nEnter Product ID to delete: ");
     getProductID(&currentId);
 
-    int productIndex = findProductIndex(products, totalProducts, currentId);
+    int productIndex = findProductIndex(products, *totalProducts, currentId);
     if (productIndex != -1)
     {
         for (unsigned int shiftIndex = productIndex; shiftIndex < *totalProducts - 1; shiftIndex++)
