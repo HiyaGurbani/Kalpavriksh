@@ -26,7 +26,6 @@ typedef struct {
 
 void getInitialNumberOfProducts(unsigned int *initialProducts) {
     printf("Enter initial number of products: ");
-
     while (true)
     {
         if (scanf("%u", initialProducts) != 1) 
@@ -35,13 +34,11 @@ void getInitialNumberOfProducts(unsigned int *initialProducts) {
             while (getchar() != '\n');
             continue;
         }
-
         if (*initialProducts < MIN_INITIAL_PRODUCTS || *initialProducts > MAX_INITIAL_PRODUCTS)
         {
             printf ("Initial Number of products must be in range 1-100! Kindly Enter again: ");
             continue;
         }
-
         break;
     }
 }
@@ -63,7 +60,7 @@ void getProductID (unsigned int *id) {
     }
 }
 
-int lengthName(char *name) {
+int nameLength(char *name) {
     int length = 0;
     while (name[length] != '\0')
     {
@@ -84,13 +81,13 @@ void getProductName (char *name) {
         }
         name[strcspn(name, "\n")] = '\0';
 
-        if (lengthName(name) == 0)
+        if (nameLength(name) == 0)
         {
             printf("Name cannot be empty. Kindly enter again: ");
             continue;
         }
 
-        if (lengthName(name) >= NAME_SIZE - 1)
+        if (nameLength(name) >= NAME_SIZE - 1)
         {
             int character;
             while ((character = getchar()) != '\n' && character != EOF);
@@ -219,6 +216,7 @@ void viewProducts (Product *products, const unsigned int totalProducts){
         printf ("No Products Exist. Add new product first.");
         return;
     }
+    
     printf("\n=========PRODUCT LIST=========\n");
     for (unsigned int productIndex = 0; productIndex < totalProducts; productIndex++)
     {
