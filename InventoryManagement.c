@@ -46,7 +46,7 @@ void getInitialNumberOfProducts(unsigned int *initialProducts) {
     }
 }
 
-void getProductID (int *id) {
+void getProductID (unsigned int *id) {
     while (true) {      
         if (scanf ("%u", id) != 1)
         {
@@ -72,11 +72,11 @@ int lengthName(char *name) {
 }
 
 void getProductName (char *name) {
+    int character;
+    while ((character = getchar()) != '\n' && character != EOF);
+
     while (true)
     {   
-        int character;
-        while ((character = getchar()) != '\n' && character != EOF);
-
         if (fgets(name, NAME_SIZE, stdin) == NULL) {
             printf("Error reading input. Try again.\n");
             continue;
@@ -95,7 +95,7 @@ void getProductName (char *name) {
             while ((character = getchar()) != '\n' && character != EOF);
             printf("Name too long! Only first %d characters will be considered.\n", NAME_SIZE );      
         }
-        
+
         break;
     }
 }
@@ -118,7 +118,7 @@ void getProductPrice (float *price) {
     }
 }
 
-void getProductQuantity (int *quantity) {
+void getProductQuantity (unsigned int *quantity) {
     while (true)
     {
         if (scanf ("%u", quantity) != 1)
@@ -178,7 +178,7 @@ bool addNewProduct(Product **products, unsigned int *totalProducts) {
     (*totalProducts)++;
 
     printf("\nEnter new product details: ");
-    getProductDetails(products[*totalProducts-1]);
+    getProductDetails(&(*products)[*totalProducts-1]);
     printf("Product added successfully!\n");
 
     return true;
@@ -286,7 +286,7 @@ void searchProductByName (Product *products, const unsigned int totalProducts) {
 }
 
 void searchProductByRange (Product *products, const unsigned int totalProducts) {
-    unsigned int minPrice, maxPrice;
+    float minPrice, maxPrice;
     bool isProductExists = false;
 
     printf ("\nEnter minimun price: ");
@@ -331,7 +331,7 @@ Product* deleteProduct(Product *products, unsigned int *totalProducts) {
         if (products[index].id == currentId)
         {
             isIdExists = true;
-            for (unsigned int shiftIndex = index; shiftIndex < *totalProducts - 1; shiftIndex)
+            for (unsigned int shiftIndex = index; shiftIndex < *totalProducts - 1; shiftIndex++)
             {
                 products[shiftIndex] = products[shiftIndex + 1];
             }
@@ -429,10 +429,11 @@ int main () {
                 free (products);
                 products = NULL;
                 printf ("Memory released successfully. Exiting program...");
-                break;
+                return 0;
 
             default:
                 printf("Invalid Choice! Please choose again.");
         }
     }
+    return 0;
 }
