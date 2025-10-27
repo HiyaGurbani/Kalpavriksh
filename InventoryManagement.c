@@ -137,7 +137,7 @@ void getProductQuantity (unsigned int *quantity) {
 int findProductIndex (Product *products, const unsigned int totalProducts, const unsigned int id) {
     for (unsigned int productIndex = 0; productIndex < totalProducts; productIndex++)
     {
-        if (products[productIndex].id == id)
+        if ((products + productIndex)->id == id)
         {
             return productIndex;
         }
@@ -183,7 +183,7 @@ Product* getProductsDetails(const unsigned int totalProducts) {
     for (int productIndex = 0; productIndex < totalProducts; productIndex++)
     {
         printf ("\nEnter details for product %d: ", productIndex + 1);
-        getProductDetails(&initialProducts[productIndex], initialProducts, productIndex);
+        getProductDetails((initialProducts + productIndex), initialProducts, productIndex);
     }
 
     return initialProducts;
@@ -198,7 +198,7 @@ bool addNewProduct(Product **products, unsigned int *totalProducts) {
     *products = temporary;
 
     printf("\nEnter new product details: ");
-    getProductDetails(&(*products)[*totalProducts], *products, *totalProducts);
+    getProductDetails((*products + *totalProducts), *products, *totalProducts);
     printf("Product added successfully!\n");
     (*totalProducts)++;
 
@@ -220,7 +220,7 @@ void viewProducts (Product *products, const unsigned int totalProducts){
     printf("\n=========PRODUCT LIST=========\n");
     for (unsigned int productIndex = 0; productIndex < totalProducts; productIndex++)
     {
-        viewProduct(&products[productIndex]);
+        viewProduct(products + productIndex);
     }
 }
 
@@ -234,7 +234,7 @@ void updateQuantity (Product *products, const unsigned int totalProducts){
     if (productIndex != -1)
     {
         printf ("Enter new Quantity: ");
-        getProductQuantity(&products[productIndex].quantity);
+        getProductQuantity(&(*(products + productIndex)).quantity);
         printf("Quantity updated successfully!\n");
     } else
     {
@@ -252,7 +252,7 @@ void searchProductById (Product *products, const unsigned int totalProducts) {
     if (productIndex != -1)
     {
         printf("Product Found: ");
-        viewProduct(&products[productIndex]);
+        viewProduct(products + productIndex);
     } else
     {
         printf ("Product Not Found.\n");
@@ -281,14 +281,14 @@ void searchProductByName (Product *products, const unsigned int totalProducts) {
 
     for (unsigned int productIndex = 0; productIndex < totalProducts; productIndex++)
     {
-        if (compareName(products[productIndex].name, currentName))
+        if (compareName((products + productIndex)->name, currentName))
         {
             if (!isNameExists)
             {
                 printf("\nProducts Found: \n");
                 isNameExists = true;
             }
-            viewProduct(&products[productIndex]);
+            viewProduct(products + productIndex);
         }
     }
 
@@ -315,14 +315,14 @@ void searchProductByRange (Product *products, const unsigned int totalProducts) 
 
     for (unsigned int productIndex = 0; productIndex < totalProducts; productIndex++)
     {
-        if (products[productIndex].price >= minPrice && products[productIndex].price <= maxPrice)
+        if ((products + productIndex)->price >= minPrice && (products + productIndex)->price <= maxPrice)
         {
             if (!isProductExists)
             {
                 printf("\nProducts in price range: \n");
                 isProductExists = true;
             }
-            viewProduct(&products[productIndex]);
+            viewProduct(products + productIndex);
         }
     }
 
@@ -342,7 +342,7 @@ Product* deleteProduct(Product *products, unsigned int *totalProducts) {
     {
         for (unsigned int shiftIndex = productIndex; shiftIndex < *totalProducts - 1; shiftIndex++)
         {
-            products[shiftIndex] = products[shiftIndex + 1];
+            *(products + shiftIndex) = *(products + (shiftIndex + 1));
         }
             (*totalProducts)--;
         printf ("Product Deleted Successfully.\n");
