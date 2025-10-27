@@ -172,7 +172,7 @@ void getProductDetails (Product *product, Product *products, const unsigned int 
 }
 
 Product* getProductsDetails(const unsigned int totalProducts) {
-    Product *initialProducts = (Product *) malloc (totalProducts * sizeof(Product));
+    Product *initialProducts = (Product *) calloc (totalProducts, sizeof(Product));
 
     if (initialProducts == NULL) 
     {
