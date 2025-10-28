@@ -2,6 +2,7 @@
 #include <string.h>
 #include <stdlib.h>
 #include <stdbool.h>
+#include <ctype.h>
 
 #define NAME_SIZE 50
 
@@ -256,17 +257,32 @@ void searchProductById(Product *products, const unsigned int totalProducts) {
     }
 }
 
-bool compareName(char *fullName, char *prefix) {
-    while (*prefix != '\0')
-    {   
-        if (tolower((unsigned char)*fullName) != tolower((unsigned char)*prefix))
-        {
-            return false;
-        } 
-        prefix++;
-        fullName++;
+bool findSubstring(char *string, char *subString) {
+    if (*subString == '\0') 
+    {
+        return true;
     }
-    return true;
+
+    while (*string != '\0') 
+    {
+        const char *currentString = string;
+        const char *currentSubString = subString;
+
+        while (*currentString != '\0' && *currentSubString != '\0' && 
+               tolower((unsigned char) *currentString) == tolower((unsigned char) *currentSubString))
+        {
+            currentString++;
+            currentSubString++;
+        }
+
+        if (*currentSubString == '\0')
+        {
+            return true;
+        }
+
+        *string++;
+    }
+    return false;
 }
  
 void searchProductByName(Product *products, const unsigned int totalProducts) {
@@ -278,7 +294,7 @@ void searchProductByName(Product *products, const unsigned int totalProducts) {
 
     for (unsigned int productIndex = 0; productIndex < totalProducts; productIndex++)
     {
-        if (compareName((products + productIndex)->name, currentName))
+        if (findSubstring((products + productIndex)->name, currentName))
         {
             if (!isNameExists)
             {
