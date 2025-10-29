@@ -4,7 +4,7 @@
 #include <stdbool.h>
 #include <ctype.h>
 
-#define NAME_SIZE 50
+#define NAME_SIZE 51
 
 #define MIN_INITIAL_PRODUCTS 1
 #define MAX_INITIAL_PRODUCTS 100
