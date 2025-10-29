@@ -71,8 +71,7 @@ int stringLength(char *string) {
 }
 
 void getProductName(char *name) {
-    int character;
-    while ((character = getchar()) != '\n' && character != EOF);
+    while (getchar() != '\n');
 
     while (true)
     {   
@@ -88,8 +87,7 @@ void getProductName(char *name) {
         }
         if (stringLength(name) >= NAME_SIZE - 1)
         {
-            int character;
-            while ((character = getchar()) != '\n' && character != EOF);
+            while (getchar() != '\n');
             printf("Name too long! Only first %d characters will be considered.\n", NAME_SIZE );      
         }
         break;
