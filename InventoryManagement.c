@@ -88,7 +88,7 @@ void getProductName(char *name) {
         if (stringLength(name) >= NAME_SIZE - 1)
         {
             while (getchar() != '\n');
-            printf("Name too long! Only first %d characters will be considered.\n", NAME_SIZE );      
+            printf("Name too long! Only first %d characters will be considered.\n", NAME_SIZE - 1);      
         }
         break;
     }
@@ -179,7 +179,7 @@ Product* getInitialProductsDetails(const unsigned int totalProducts) {
     for (int productIndex = 0; productIndex < totalProducts; productIndex++)
     {
         printf("\nEnter details for product %d: ", productIndex + 1);
-        getProductDetails((initialProducts + productIndex), initialProducts, productIndex);
+        getProductDetails(initialProducts + productIndex, initialProducts, productIndex);
     }
 
     return initialProducts;
@@ -194,7 +194,7 @@ bool addNewProduct(Product **products, unsigned int *totalProducts) {
     *products = temporary;
 
     printf("\nEnter new product details: ");
-    getProductDetails((*products + *totalProducts), *products, *totalProducts);
+    getProductDetails(*products + *totalProducts, *products, *totalProducts);
     printf("Product added successfully!\n");
     (*totalProducts)++;
 
@@ -209,7 +209,7 @@ void viewProduct(Product *product) {
 void viewProducts(Product *products, const unsigned int totalProducts){
     if (totalProducts == 0)
     {
-        printf("No Products Exist. Add new product first.");
+        printf("No Products Exist. Add new product first.\n");
         return;
     }
     
@@ -220,7 +220,7 @@ void viewProducts(Product *products, const unsigned int totalProducts){
     }
 }
 
-void updateQuantity(Product *products, const unsigned int totalProducts){
+void updateProductQuantity(Product *products, const unsigned int totalProducts){
     unsigned int currentId;
     
     printf("\nEnter Product ID to update quantity: ");
@@ -238,7 +238,7 @@ void updateQuantity(Product *products, const unsigned int totalProducts){
     }
 }
 
-Product* searchProductById(Product *products, const unsigned int totalProducts) {
+int searchProductById(Product *products, const unsigned int totalProducts) {
     unsigned int currentId;
 
     printf("\nEnter Product ID to search: ");
@@ -247,9 +247,10 @@ Product* searchProductById(Product *products, const unsigned int totalProducts) 
     int productIndex = findProductIndex(products, totalProducts, currentId);
     if (productIndex != -1)
     {
-        return (products+productIndex);
+        return productIndex;
     } 
-    return NULL;
+
+    return -1;
 }
 
 bool findSubstring(char *string, char *subString) {
@@ -275,40 +276,46 @@ bool findSubstring(char *string, char *subString) {
             return true;
         }
 
-        *string++;
+        string++;
     }
     return false;
 }
  
-void searchProductByName(Product *products, const unsigned int totalProducts) {
+int* searchProductByName(Product *products, const unsigned int totalProducts, int *foundCount) {
     char currentName[NAME_SIZE];
     printf("\nEnter name to search (partial allowed): ");
     getProductName(currentName);
 
-    bool isNameExists = false;
+    int* foundProductsIndex = malloc (totalProducts * sizeof(int));
+    if (foundProductsIndex == NULL)
+    {
+        *foundCount = -1;
+        return NULL;
+    }
+
+    *foundCount = 0;
 
     for (unsigned int productIndex = 0; productIndex < totalProducts; productIndex++)
     {
         if (findSubstring((products + productIndex)->name, currentName))
         {
-            if (!isNameExists)
-            {
-                printf("\nProducts Found: \n");
-                isNameExists = true;
-            }
-            viewProduct(products + productIndex);
+            *(foundProductsIndex + *foundCount) = productIndex;
+            (*foundCount)++;
         }
     }
 
-    if (!isNameExists)
+    if (*foundCount == 0)
     {
-        printf("Product Not Found.\n");
+        printf("Product Not found.\n");
+        free (foundProductsIndex);
+        return NULL;
     }
+
+    return foundProductsIndex;
 }
 
-void searchProductByRange(Product *products, const unsigned int totalProducts) {
+int* searchProductByPriceRange(Product *products, const unsigned int totalProducts, int *foundCount) {
     float minPrice, maxPrice;
-    bool isProductExists = false;
 
     printf("\nEnter minimum price: ");
     getProductPrice(&minPrice);
@@ -318,26 +325,36 @@ void searchProductByRange(Product *products, const unsigned int totalProducts) {
     if (maxPrice < minPrice)
     {
         printf("Error: Maximum Price Range must be greater than Minimum Price Range.\n");
-        return;
+        *foundCount = 0;
+        return NULL;
     }
+
+    int* foundProductsIndex = malloc (totalProducts * sizeof(int));
+    if (foundProductsIndex == NULL)
+    {
+        *foundCount = -1;
+        return NULL;
+    }
+
+    *foundCount = 0;
 
     for (unsigned int productIndex = 0; productIndex < totalProducts; productIndex++)
     {
         if ((products + productIndex)->price >= minPrice && (products + productIndex)->price <= maxPrice)
         {
-            if (!isProductExists)
-            {
-                printf("\nProducts in price range: \n");
-                isProductExists = true;
-            }
-            viewProduct(products + productIndex);
+            *(foundProductsIndex + *foundCount) = productIndex;
+            (*foundCount)++;
         }
     }
 
-    if (!isProductExists)
+    if (*foundCount == 0)
     {
-        printf("No Product in Price Range.\n");
+        printf("No Product in price range!\n");
+        free (foundProductsIndex);
+        return NULL;
     }
+
+    return foundProductsIndex;
 }
 
 Product* deleteProduct(Product *products, unsigned int *totalProducts) {
@@ -419,30 +436,64 @@ int main () {
                 break;
             
             case 3:
-                updateQuantity(products, totalProducts);
+                updateProductQuantity(products, totalProducts);
                 break;
 
             case 4: {
-                Product *product = searchProductById(products, totalProducts);
-                if (product == NULL) 
+                int productIndex = searchProductById(products, totalProducts);
+                if (productIndex == -1) 
                 {
                     printf("Product Not Found!\n");
                 }
                 else 
                 {    
                     printf("Product Found: ");
-                    viewProduct(product);
+                    viewProduct(products + productIndex);
                 }
                 break;
             }
 
-            case 5:
-                searchProductByName(products, totalProducts);
-                break;
+            case 5: {
+                int foundCount;
+                int *foundProductsIndex = searchProductByName(products, totalProducts, &foundCount);
 
-            case 6:
-                searchProductByRange(products, totalProducts);
+                if (foundProductsIndex == NULL && foundCount == -1)
+                {
+                    printf("Memory allocation failed.\n");
+                    return 1;
+                }
+                else if (foundProductsIndex != NULL)
+                {
+                    printf("\nProducts Found:\n");
+                    for (int productIndex = 0; productIndex < foundCount; productIndex++) {
+                        viewProduct(products + *(foundProductsIndex + productIndex));
+                    }
+                    free (foundProductsIndex);
+                }
+
                 break;
+            }
+
+            case 6: {
+                int foundCount = 0;
+                int *foundProductsIndex = searchProductByPriceRange(products, totalProducts, &foundCount);
+
+                if (foundProductsIndex == NULL && foundCount == -1)
+                {
+                    printf("Memory allocation failed.\n");
+                    return 1;
+                }
+                else if (foundProductsIndex != NULL)
+                {
+                    printf("\nProducts in price range: \n");
+                    for (int productIndex = 0; productIndex < foundCount; productIndex++) {
+                        viewProduct(products + *(foundProductsIndex + productIndex));
+                    }
+                    free (foundProductsIndex);
+                }
+                
+                break;
+            }
 
             case 7:
                 products = deleteProduct(products, &totalProducts);
