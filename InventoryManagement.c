@@ -238,7 +238,7 @@ void updateQuantity(Product *products, const unsigned int totalProducts){
     }
 }
 
-void searchProductById(Product *products, const unsigned int totalProducts) {
+Product* searchProductById(Product *products, const unsigned int totalProducts) {
     unsigned int currentId;
 
     printf("\nEnter Product ID to search: ");
@@ -247,12 +247,9 @@ void searchProductById(Product *products, const unsigned int totalProducts) {
     int productIndex = findProductIndex(products, totalProducts, currentId);
     if (productIndex != -1)
     {
-        printf("Product Found: ");
-        viewProduct(products + productIndex);
-    } else
-    {
-        printf("Product Not Found.\n");
-    }
+        return (products+productIndex);
+    } 
+    return NULL;
 }
 
 bool findSubstring(char *string, char *subString) {
@@ -425,9 +422,19 @@ int main () {
                 updateQuantity(products, totalProducts);
                 break;
 
-            case 4:
-                searchProductById(products, totalProducts);
+            case 4: {
+                Product *product = searchProductById(products, totalProducts);
+                if (product == NULL) 
+                {
+                    printf("Product Not Found!\n");
+                }
+                else 
+                {    
+                    printf("Product Found: ");
+                    viewProduct(product);
+                }
                 break;
+            }
 
             case 5:
                 searchProductByName(products, totalProducts);
@@ -448,7 +455,7 @@ int main () {
                 return 0;
 
             default:
-                printf("Invalid Choice! Please choose again.");
+                printf("Invalid Choice! Please choose again.\n");
         }
     }
     return 0;
