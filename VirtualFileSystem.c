@@ -88,18 +88,18 @@ char (*createVirtualDisk())[BLOCK_SIZE] {
     return virtualDisk;
 }
 
-void createFreeBlocksStorage(FreeBlock **head, FreeBlock **tail) {
+void createFreeBlocksStorage(FreeBlock **freeBlockHead, FreeBlock **freeBlockTail) {
     FreeBlock *prev = NULL;
     for (int blockNumber = 0; blockNumber < MAX_NUMBER_OF_BLOCKS; blockNumber++)
     {
         FreeBlock *node = createFreeBlockNode(blockNumber);
         if (blockNumber == 0) 
         {
-            *head = node;
+            *freeBlockHead = node;
         }
         if (blockNumber == MAX_NUMBER_OF_BLOCKS - 1) 
         {
-            *tail = node;
+            *freeBlockTail = node;
         }
         node->prev = prev;
         if (prev)
@@ -110,58 +110,58 @@ void createFreeBlocksStorage(FreeBlock **head, FreeBlock **tail) {
     }
 }
 
-int numberOfFreeBlocks(FreeBlock* head) {
-    FreeBlock* temp = head;
+int numberOfFreeBlocks(FreeBlock* freeBlockHead) {
+    FreeBlock* temp = freeBlockHead;
     int size = 0;
-    while(temp!=NULL) {
+    while(temp != NULL) {
         size++;
         temp = temp->next;
     }
     return size;
 }
 
-void insertionAtEnd(FreeBlock** head, FreeBlock** tail, int value) {
+void insertionAtEnd(FreeBlock** freeBlockHead, FreeBlock** freeBlockTail, int value) {
     FreeBlock* newNode = createFreeBlockNode(value);
 
-    if (*head == NULL)
+    if (*freeBlockHead == NULL)
     {
-        *head = *tail = newNode;
+        *freeBlockHead = *freeBlockTail = newNode;
         return;
     }
 
-    (*tail)->next = newNode;
-    newNode->prev = *tail;
-    *tail = newNode;
+    (*freeBlockTail)->next = newNode;
+    newNode->prev = *freeBlockTail;
+    *freeBlockTail = newNode;
 }
 
-void deletionAtHead(FreeBlock** head, FreeBlock** tail) {
-    if (*head == NULL)
+void deletionAtfreeBlockHead(FreeBlock** freeBlockHead, FreeBlock** freeBlockTail) {
+    if (*freeBlockHead == NULL)
     {
         return;
     }
 
-    FreeBlock* toDelete = *head;
-    *head = toDelete->next;
+    FreeBlock* toDelete = *freeBlockHead;
+    *freeBlockHead = toDelete->next;
 
-    if (*head != NULL)
+    if (*freeBlockHead != NULL)
     {
-        (*head)->prev = NULL;
+        (*freeBlockHead)->prev = NULL;
     }
     else
     {
-        *tail = NULL;
+        *freeBlockTail = NULL;
     }
 
     free(toDelete);
     toDelete = NULL;
 }
 
-void allocateBlocksToFile(FreeBlock** head, FreeBlock** tail, int neededBlocks, int* blockPointers) {
-    while (neededBlocks-- && *head != NULL) 
+void allocateBlocksToFile(FreeBlock** freeBlockHead, FreeBlock** freeBlockTail, int neededBlocks, int* blockPointers) {
+    while (neededBlocks-- && *freeBlockHead != NULL) 
     {
-        *blockPointers = (*head)->data;
+        *blockPointers = (*freeBlockHead)->data;
         blockPointers++;
-        deletionAtHead(head, tail);
+        deletionAtfreeBlockHead(freeBlockHead, freeBlockTail);
     }
 }
 
@@ -172,9 +172,9 @@ FileNode *createRootDirectory() {
     return root;
 }
 
-void initialiseVirtualFileSystem(char (**virtualDisk)[BLOCK_SIZE], FreeBlock** head, FreeBlock** tail, FileNode** root) {
+void initialiseVirtualFileSystem(char (**virtualDisk)[BLOCK_SIZE], FreeBlock** freeBlockHead, FreeBlock** freeBlockTail, FileNode** root) {
     *virtualDisk = createVirtualDisk();
-    createFreeBlocksStorage(head, tail);
+    createFreeBlocksStorage(freeBlockHead, freeBlockTail);
     *root = createRootDirectory();
 }
 
@@ -248,41 +248,41 @@ RmdirStatus removeDirectory(FileNode* currentDirectory, char* directoryName) {
         return RMDIR_NOT_FOUND;
     }
 
-    FileNode* prev = NULL, *curr = currentDirectory->child;
+    FileNode* previousNode = NULL, *currentNode = currentDirectory->child;
 
     do
     {
-        if (strcmp(curr->name, directoryName) == 0 && !curr->isFile)
+        if (strcmp(currentNode->name, directoryName) == 0 && !currentNode->isFile)
         {
-            if (curr->child)
+            if (currentNode->child)
             {
                 return RMDIR_NOT_EMPTY; 
             }
-            if (curr->next == curr)
+            if (currentNode->next == currentNode)
             {
                 currentDirectory->child = NULL;
             }
-            else if (prev == NULL)
+            else if (previousNode == NULL)
             {
                 FileNode* last = currentDirectory->child;
                 while (last->next != currentDirectory->child)
                 {
                     last = last->next;
                 }
-                last->next = curr->next;
-                currentDirectory->child = curr->next;
+                last->next = currentNode->next;
+                currentDirectory->child = currentNode->next;
             }
             else
             {
-                prev->next = curr->next;
+                previousNode->next = currentNode->next;
             }
-            free(curr);
-            curr = NULL;
+            free(currentNode);
+            currentNode = NULL;
             return RMDIR_SUCCESS;
         }
-        prev = curr;
-        curr = curr->next;
-    } while (curr != currentDirectory->child);
+        previousNode = currentNode;
+        currentNode = currentNode->next;
+    } while (currentNode != currentDirectory->child);
 
     return RMDIR_NOT_FOUND;
 }
@@ -394,7 +394,7 @@ bool getDataFromString(char* input, char* fileName, char* text) {
     return true;
 }
 
-void freeFileBlocks(FileNode* file, FreeBlock** head, FreeBlock** tail) {
+void freeFileBlocks(FileNode* file, FreeBlock** freeBlockHead, FreeBlock** freeBlockTail) {
     if (file->blockPointers[0] != -1)
     {
         for (int index = 0; index < MAX_BLOCKS_PER_FILE; index++)
@@ -404,13 +404,13 @@ void freeFileBlocks(FileNode* file, FreeBlock** head, FreeBlock** tail) {
             {
                 break;
             }
-            insertionAtEnd(head, tail, blockIndex);
+            insertionAtEnd(freeBlockHead, freeBlockTail, blockIndex);
             file->blockPointers[index] = -1;
         }
     }
 }
 
-bool isFileWritable(FileNode* currentDirectory, FreeBlock** head, FreeBlock**tail, char* fileName, char* text) {
+bool isFileWritable(FileNode* currentDirectory, FreeBlock** freeBlockHead, FreeBlock**freeBlockTail, char* fileName, char* text) {
     FileNode* file = isFileExists(currentDirectory->child, fileName);
     if (file == NULL )
     {
@@ -424,10 +424,10 @@ bool isFileWritable(FileNode* currentDirectory, FreeBlock** head, FreeBlock**tai
         return false;
     }
 
-    freeFileBlocks(file, head, tail);
+    freeFileBlocks(file, freeBlockHead, freeBlockTail);
 
     int neededBlocks = (strlen(text) + BLOCK_SIZE - 1) / BLOCK_SIZE; 
-    int freeBlockSize = numberOfFreeBlocks(*head);
+    int freeBlockSize = numberOfFreeBlocks(*freeBlockHead);
 
     if (freeBlockSize < neededBlocks)
     {
@@ -457,15 +457,15 @@ void writeTextToBlocks(FileNode* file, int neededBlocks, char* text, char (*virt
     }
 }
 
-bool writeDataIntoFile(FileNode* currentDirectory, char* fileName, char* text, FreeBlock** head, FreeBlock** tail, char (*virtualDisk)[BLOCK_SIZE]) {
-    if (!isFileWritable(currentDirectory, head, tail, fileName, text))
+bool writeDataIntoFile(FileNode* currentDirectory, char* fileName, char* text, FreeBlock** freeBlockHead, FreeBlock** freeBlockTail, char (*virtualDisk)[BLOCK_SIZE]) {
+    if (!isFileWritable(currentDirectory, freeBlockHead, freeBlockTail, fileName, text))
     {
         return false;
     }
 
     FileNode* file = isFileExists(currentDirectory->child, fileName);
     int neededBlocks = (strlen(text) + BLOCK_SIZE - 1) / BLOCK_SIZE;
-    allocateBlocksToFile(head, tail, neededBlocks, file->blockPointers);
+    allocateBlocksToFile(freeBlockHead, freeBlockTail, neededBlocks, file->blockPointers);
 
     writeTextToBlocks(file, neededBlocks, text, virtualDisk);
 
@@ -493,51 +493,51 @@ bool readFile(FileNode* currentDirectory, char* fileName, char (*virtualDisk)[BL
     return true;
 }
 
-bool deleteFile(FileNode* currentDirectory, char* fileName, FreeBlock** head, FreeBlock** tail) {
+bool deleteFile(FileNode* currentDirectory, char* fileName, FreeBlock** freeBlockHead, FreeBlock** freeBlockTail) {
     FileNode* file  = isFileExists(currentDirectory->child, fileName);
     if (file == NULL || file->isFile == false)
     {
         return false;
     }
 
-    freeFileBlocks(file, head, tail);
+    freeFileBlocks(file, freeBlockHead, freeBlockTail);
 
-    FileNode* prev = NULL, *curr = currentDirectory->child;
+    FileNode* previousNode = NULL, *currentNode = currentDirectory->child;
     do
     {
-        if (strcmp(curr->name, fileName) == 0 && curr->isFile)
+        if (strcmp(currentNode->name, fileName) == 0 && currentNode->isFile)
         {
-            if (curr->next == curr)
+            if (currentNode->next == currentNode)
             {
                 currentDirectory->child = NULL;
             }
-            else if (prev == NULL)
+            else if (previousNode == NULL)
             {
                 FileNode* last = currentDirectory->child;
                 while (last->next != currentDirectory->child) 
                 {
                     last = last->next;
                 }
-                last->next = curr->next;
-                currentDirectory->child = curr->next;
+                last->next = currentNode->next;
+                currentDirectory->child = currentNode->next;
             }
             else 
             {
-                prev->next = curr->next;
+                previousNode->next = currentNode->next;
             }
-            free(curr);
-            curr = NULL;
+            free(currentNode);
+            currentNode = NULL;
             return true;
         }
-        prev = curr;
-        curr = curr->next;
-    } while (curr != currentDirectory->child);
+        previousNode = currentNode;
+        currentNode = currentNode->next;
+    } while (currentNode != currentDirectory->child);
     
     return false;
 }
 
-void displayDiskInformation(FreeBlock* head) {
-    int freeBlocks = numberOfFreeBlocks(head);
+void displayDiskInformation(FreeBlock* freeBlockHead) {
+    int freeBlocks = numberOfFreeBlocks(freeBlockHead);
     int usedBlocks = MAX_NUMBER_OF_BLOCKS - freeBlocks;
 
     printf("Total Blocks: %d\n", MAX_NUMBER_OF_BLOCKS);
@@ -546,15 +546,15 @@ void displayDiskInformation(FreeBlock* head) {
     printf("Disk Usage: %.2f%%\n", ((float)usedBlocks / MAX_NUMBER_OF_BLOCKS) * 100);
 }
 
-void freeFreeBlocks(FreeBlock** head, FreeBlock** tail) {
-    FreeBlock* current = *head;
+void freeFreeBlocks(FreeBlock** freeBlockHead, FreeBlock** freeBlockTail) {
+    FreeBlock* current = *freeBlockHead;
     while (current != NULL)
     {
         FreeBlock* next = current->next;
         free(current);
         current = next;
     }
-    *tail = NULL;
+    *freeBlockTail = NULL;
     return;
 }
 
@@ -580,7 +580,7 @@ void freeFileNodes(FileNode* node) {
     } while(current != NULL && current != start);
 }
 
-void handleCommand(char *input, FileNode **currentDirectory, FreeBlock **head, FreeBlock **tail, 
+void handleCommand(char *input, FileNode **currentDirectory, FreeBlock **freeBlockHead, FreeBlock **freeBlockTail, 
                     FileNode *root, char (*virtualDisk)[BLOCK_SIZE] ) 
 {
     char path[PATH_SIZE] = "";
@@ -673,7 +673,7 @@ void handleCommand(char *input, FileNode **currentDirectory, FreeBlock **head, F
 
         if (getDataFromString(remainingInput, fileName, text)) 
         {
-            if (writeDataIntoFile(*currentDirectory, fileName, text, head, tail, virtualDisk))
+            if (writeDataIntoFile(*currentDirectory, fileName, text, freeBlockHead, freeBlockTail, virtualDisk))
             {
                 printf("Data written successfully (%lu bytes)\n", strlen(text));
             }
@@ -695,7 +695,7 @@ void handleCommand(char *input, FileNode **currentDirectory, FreeBlock **head, F
     else if (strncmp(input, CMD_DELETE, strlen(CMD_DELETE)) == 0) 
     {
         char* fileName = input + strlen(CMD_DELETE);
-        if (deleteFile(*currentDirectory, fileName, head, tail))
+        if (deleteFile(*currentDirectory, fileName, freeBlockHead, freeBlockTail))
         {
             printf("File deleted successfully.\n");
         }
@@ -707,13 +707,13 @@ void handleCommand(char *input, FileNode **currentDirectory, FreeBlock **head, F
 
     else if (strcmp(input, CMD_DF) == 0) 
     {
-        displayDiskInformation(*head);
+        displayDiskInformation(*freeBlockHead);
     }
 
     else if (strcmp(input, CMD_EXIT) == 0) 
     {
         free(virtualDisk);
-        freeFreeBlocks(head, tail);
+        freeFreeBlocks(freeBlockHead, freeBlockTail);
         freeFileNodes(root);
         printf("Memory released. Exiting program...\n");
         exit(0);
@@ -727,10 +727,10 @@ void handleCommand(char *input, FileNode **currentDirectory, FreeBlock **head, F
 
 int main() {
     char (*virtualDisk)[BLOCK_SIZE] = NULL;
-    FreeBlock *head = NULL, *tail = NULL;
+    FreeBlock *freeBlockHead = NULL, *freeBlockTail = NULL;
     FileNode *root = NULL;
 
-    initialiseVirtualFileSystem(&virtualDisk, &head, &tail, &root);
+    initialiseVirtualFileSystem(&virtualDisk, &freeBlockHead, &freeBlockTail, &root);
     FileNode *currentDirectory = root;
     
     printf("Compact VFS - ready. Type 'exit' to quit.\n");
@@ -743,7 +743,7 @@ int main() {
         fgets(input, INPUT_SIZE, stdin);
         input[strcspn(input, "\n")] = '\0';
 
-        handleCommand(input, &currentDirectory, &head, &tail, root, virtualDisk);
+        handleCommand(input, &currentDirectory, &freeBlockHead, &freeBlockTail, root, virtualDisk);
         printf("\n");
     }
 }
