@@ -4,8 +4,8 @@
 #include<string.h>
 
 //Virtual Disk
-#define BLOCK_SIZE 16 //Column Number
-#define MAX_NUMBER_OF_BLOCKS 10 //Row Number 
+#define BLOCK_SIZE 512 //Column Number
+#define MAX_NUMBER_OF_BLOCKS 1024 //Row Number 
 
 #define NAME_SIZE 50
 #define MAX_BLOCKS_PER_FILE 5
@@ -14,6 +14,19 @@
 
 #define PATH_SIZE 100
 #define TEXT_SIZE 100
+
+#define CMD_MKDIR "mkdir "
+#define CMD_RMDIR "rmdir "
+#define CMD_CREATE "create "
+#define CMD_DELETE "delete "
+#define CMD_READ "read "
+#define CMD_WRITE "write "
+#define CMD_CD "cd "
+#define CMD_CD_PARENT "cd.."
+#define CMD_LS "ls"
+#define CMD_DF "df"
+#define CMD_PWD "pwd"
+#define CMD_EXIT "exit"
 
 typedef enum {
     RMDIR_SUCCESS,
@@ -47,6 +60,8 @@ FreeBlock *createFreeBlockNode(int value) {
     newNode->data = value;
     newNode->prev = NULL;
     newNode->next = NULL;
+
+    return newNode;
 }
 
 FileNode *createFileNode(char *name) {
@@ -60,6 +75,8 @@ FileNode *createFileNode(char *name) {
     newNode->next = newNode; //Circular Linked List
     newNode->child = NULL;
     newNode->parent = NULL;
+
+    return newNode;
 }
 
 
@@ -122,6 +139,11 @@ FreeBlock* insertionAtEnd(FreeBlock* head, int value) {
 }
 
 FreeBlock* deletionAtHead(FreeBlock* head) {
+    if (head == NULL)
+    {
+        return NULL;
+    }
+
     FreeBlock* toDelete = head;
     head = toDelete->next;
     head->prev = NULL;
@@ -131,8 +153,8 @@ FreeBlock* deletionAtHead(FreeBlock* head) {
     return head;
 }
 
-FreeBlock* deleteFreeBlocks(FreeBlock* head, int blocksToDelete, int* blockPointers) {
-    while (blocksToDelete--) 
+FreeBlock* allocateBlocksToFile(FreeBlock* head, int neededBlocks, int* blockPointers) {
+    while (neededBlocks--) 
     {
         *blockPointers = head->data;
         blockPointers++;
@@ -148,8 +170,13 @@ FileNode *createRootDirectory() {
     return root;
 }
 
-// ---------------------------------Operations------------------------------------------------
-FileNode* isUniqueName(FileNode* node, char *name) {
+void initialiseVirtualFileSystem(char (**virtualDisk)[BLOCK_SIZE], FreeBlock** head, FreeBlock** tail, FileNode** root) {
+    *virtualDisk = createVirtualDisk();
+    createFreeBlocksStorage(head, tail);
+    *root = createRootDirectory();
+}
+
+FileNode* isFileExists(FileNode* node, char *name) {
     if (node == NULL)
     {
         return NULL;
@@ -168,7 +195,7 @@ FileNode* isUniqueName(FileNode* node, char *name) {
     return NULL;
 }
 
-bool createNodeInDirectory(FileNode* cwd, char* nodeName, bool isFile) {
+bool createNodeInDirectory(FileNode* currentDirectory, char* nodeName, bool isFile) {
     FileNode *newNode = createFileNode(nodeName);
     if (isFile)
     {
@@ -178,27 +205,27 @@ bool createNodeInDirectory(FileNode* cwd, char* nodeName, bool isFile) {
         newNode->isFile = false;
     }
 
-    newNode->parent = cwd;
+    newNode->parent = currentDirectory;
 
-    if (cwd->child == NULL)
+    if (currentDirectory->child == NULL)
     {
-        cwd->child = newNode;
+        currentDirectory->child = newNode;
     }
     else 
     {
-        if (isUniqueName(cwd->child, nodeName) != NULL)
+        if (isFileExists(currentDirectory->child, nodeName) != NULL)
         {
             free(newNode);
             newNode = NULL;
             return false;
         }
 
-        FileNode *temp = cwd->child;
-        while(temp->next != cwd->child)
+        FileNode *temp = currentDirectory->child;
+        while(temp->next != currentDirectory->child)
         {
             temp = temp->next;
         }
-        newNode->next = cwd->child;
+        newNode->next = currentDirectory->child;
         temp->next = newNode;
     }
 
@@ -213,13 +240,13 @@ bool createNodeInDirectory(FileNode* cwd, char* nodeName, bool isFile) {
     return true;
 }
 
-RmdirStatus removeDirectory(FileNode* cwd, char* directoryName) {
-    if (cwd->child == NULL)
+RmdirStatus removeDirectory(FileNode* currentDirectory, char* directoryName) {
+    if (currentDirectory->child == NULL)
     {
         return RMDIR_NOT_FOUND;
     }
 
-    FileNode* prev = NULL, *curr = cwd->child;
+    FileNode* prev = NULL, *curr = currentDirectory->child;
 
     do
     {
@@ -231,17 +258,17 @@ RmdirStatus removeDirectory(FileNode* cwd, char* directoryName) {
             }
             if (curr->next == curr)
             {
-                cwd->child = NULL;
+                currentDirectory->child = NULL;
             }
             else if (prev == NULL)
             {
-                FileNode* last = cwd->child;
-                while (last->next != cwd->child)
+                FileNode* last = currentDirectory->child;
+                while (last->next != currentDirectory->child)
                 {
                     last = last->next;
                 }
                 last->next = curr->next;
-                cwd->child = curr->next;
+                currentDirectory->child = curr->next;
             }
             else
             {
@@ -253,69 +280,76 @@ RmdirStatus removeDirectory(FileNode* cwd, char* directoryName) {
         }
         prev = curr;
         curr = curr->next;
-    } while (curr != cwd->child);
+    } while (curr != currentDirectory->child);
 
     return RMDIR_NOT_FOUND;
 }
 
-bool changeDirectory(FileNode** cwd, char *directoryName) {
-    if ((*cwd)->child == NULL)
+bool changeDirectory(FileNode** currentDirectory, char *directoryName) {
+    if ((*currentDirectory)->child == NULL)
     {
         return false;
     }
 
-    FileNode *temp = (*cwd)->child;
+    FileNode *temp = (*currentDirectory)->child;
     do
     {
         if (strcmp(temp->name, directoryName) == 0 && !temp->isFile)
         {
-            *cwd = temp;
+            *currentDirectory = temp;
             return true;
         }
         temp = temp->next;
-    } while (temp != (*cwd)->child);
+    } while (temp != (*currentDirectory)->child);
     
     return false;
 }
 
-bool cdParent(FileNode** cwd) {
-    if ((*cwd)->parent == NULL)
+bool cdParent(FileNode** currentDirectory) {
+    if ((*currentDirectory)->parent == NULL)
     {
         return false;
     }
 
-    *cwd = (*cwd)->parent;
+    *currentDirectory = (*currentDirectory)->parent;
     return true;
 }
 
-void listChildren(FileNode* cwd) {
-    if (cwd->child == NULL)
+void listChildren(FileNode* currentDirectory) {
+    if (currentDirectory->child == NULL)
     {
         printf("(empty)\n");
         return;
     }
 
-    FileNode* temp = cwd->child;
+    FileNode* temp = currentDirectory->child;
 
     do
     {
-        printf("%s\n", temp->name);
+        if (temp->isFile)
+        {
+            printf("%s\n", temp->name);
+        }
+        else 
+        {
+            printf("%s/\n", temp->name);
+        }
         temp = temp->next;
-    } while (temp != cwd->child);
+    } while (temp != currentDirectory->child);
 }
 
-void workingDirectory(FileNode* cwd, char *path) {
-    if (cwd->parent == NULL) {
+void workingDirectory(FileNode* currentDirectory, char *path) {
+    if (currentDirectory->parent == NULL) {
         return;
     }
     
-    workingDirectory(cwd->parent, path);
+    workingDirectory(currentDirectory->parent, path);
     strcat(path, "/");
-    strcat(path, cwd->name);
+    strcat(path, currentDirectory->name);
 }
 
-void getWorkingDirectory(FileNode* cwd, char *path) {
-    workingDirectory(cwd, path);
+void getWorkingDirectory(FileNode* currentDirectory, char *path) {
+    workingDirectory(currentDirectory, path);
     if (strcmp(path, "") == 0)
     {
         strcpy(path, "/");
@@ -360,31 +394,31 @@ bool getDataFromString(char* input, char* fileName, char* text) {
 FreeBlock* freeFileBlocks(FileNode* file, FreeBlock* head) {
     if (file->blockPointers[0] != -1)
     {
-        for (int i = 0; i < MAX_BLOCKS_PER_FILE; i++)
+        for (int index = 0; index < MAX_BLOCKS_PER_FILE; index++)
         {
-            int blockIndex = file->blockPointers[i];
+            int blockIndex = file->blockPointers[index];
             if (blockIndex == -1)
             {
                 break;
             }
             head = insertionAtEnd(head, blockIndex);
-            file->blockPointers[i] = -1;
+            file->blockPointers[index] = -1;
         }
     }
     return head;
 }
 
-bool writeDataIntoFile(FileNode* cwd, char* fileName, char* text, FreeBlock** head, char (*virtualDisk)[BLOCK_SIZE]) {
-    FileNode* file = isUniqueName(cwd->child, fileName);
+bool isFileWritable(FileNode* currentDirectory, FreeBlock** head, char* fileName, char* text) {
+    FileNode* file = isFileExists(currentDirectory->child, fileName);
     if (file == NULL )
     {
-        printf("Error: File '%s' does not exist.\n", fileName);
+        printf("File '%s' does not exist.\n", fileName);
         return false; 
     }
 
     if (file->isFile == false)
     {
-        printf("Error: '%s' is a directory, not a file.\n", fileName);
+        printf("'%s' is a directory, not a file.\n", fileName);
         return false;
     }
 
@@ -399,41 +433,54 @@ bool writeDataIntoFile(FileNode* cwd, char* fileName, char* text, FreeBlock** he
         return false; 
     }
 
-    *head = deleteFreeBlocks(*head, neededBlocks, file->blockPointers);
+    return true;
+}
 
+void writeTextToBlocks(FileNode* file, int neededBlocks, char* text, char (*virtualDisk)[BLOCK_SIZE]) {
     int textIndex = 0;
     for (int index = 0; index < neededBlocks; index++) {
         int blockNumber = file->blockPointers[index];
+        if (blockNumber == -1)
+        {
+            break;
+        }
 
         int byteNumber = 0;
-        while (byteNumber < BLOCK_SIZE && text[textIndex] != '\0') {
+        while (byteNumber < BLOCK_SIZE - 1 && text[textIndex] != '\0') {
             virtualDisk[blockNumber][byteNumber++] = text[textIndex++];
         }
         virtualDisk[blockNumber][byteNumber] = '\0';
     }
+}
 
-    for (int i = 0; i < MAX_BLOCKS_PER_FILE; i++) {
-        printf("%d ", file->blockPointers[i]);
+bool writeDataIntoFile(FileNode* currentDirectory, char* fileName, char* text, FreeBlock** head, char (*virtualDisk)[BLOCK_SIZE]) {
+    if (!isFileWritable(currentDirectory, head, fileName, text))
+    {
+        return false;
     }
-    
+
+    FileNode* file = isFileExists(currentDirectory->child, fileName);
+    int neededBlocks = (strlen(text) + BLOCK_SIZE - 1) / BLOCK_SIZE;
+    *head = allocateBlocksToFile(*head, neededBlocks, file->blockPointers);
+
+    writeTextToBlocks(file, neededBlocks, text, virtualDisk);
+
     return true;
 }
 
-bool readFile(FileNode* cwd, char* fileName, char (*virtualDisk)[BLOCK_SIZE]) {
-    FileNode* file = isUniqueName(cwd->child, fileName);
+bool readFile(FileNode* currentDirectory, char* fileName, char (*virtualDisk)[BLOCK_SIZE]) {
+    FileNode* file = isFileExists(currentDirectory->child, fileName);
     if (file == NULL || file->isFile == false)
     {
         return false;
     }
 
-    for (int i = 0; i < MAX_BLOCKS_PER_FILE; i++) {
-        int blockIndex = file->blockPointers[i];
-
+    for (int index = 0; index < MAX_BLOCKS_PER_FILE; index++) {
+        int blockIndex = file->blockPointers[index];
         if (blockIndex == -1)
         {
             break;
         }
-
         printf("%s", virtualDisk[blockIndex]);
     }
 
@@ -441,8 +488,8 @@ bool readFile(FileNode* cwd, char* fileName, char (*virtualDisk)[BLOCK_SIZE]) {
     return true;
 }
 
-bool deleteFile(FileNode* cwd, char* fileName, FreeBlock** head) {
-    FileNode* file  = isUniqueName(cwd->child, fileName);
+bool deleteFile(FileNode* currentDirectory, char* fileName, FreeBlock** head) {
+    FileNode* file  = isFileExists(currentDirectory->child, fileName);
     if (file == NULL || file->isFile == false)
     {
         return false;
@@ -450,25 +497,24 @@ bool deleteFile(FileNode* cwd, char* fileName, FreeBlock** head) {
 
     *head = freeFileBlocks(file, *head);
 
-    //Delete the file
-    FileNode* prev = NULL, *curr = cwd->child;
+    FileNode* prev = NULL, *curr = currentDirectory->child;
     do
     {
         if (strcmp(curr->name, fileName) == 0 && curr->isFile)
         {
             if (curr->next == curr)
             {
-                cwd->child = NULL;
+                currentDirectory->child = NULL;
             }
             else if (prev == NULL)
             {
-                FileNode* last = cwd->child;
-                while (last->next != cwd->child) 
+                FileNode* last = currentDirectory->child;
+                while (last->next != currentDirectory->child) 
                 {
                     last = last->next;
                 }
                 last->next = curr->next;
-                cwd->child = curr->next;
+                currentDirectory->child = curr->next;
             }
             else 
             {
@@ -480,7 +526,7 @@ bool deleteFile(FileNode* cwd, char* fileName, FreeBlock** head) {
         }
         prev = curr;
         curr = curr->next;
-    } while (curr != cwd->child);
+    } while (curr != currentDirectory->child);
     
     return false;
 }
@@ -495,151 +541,162 @@ void displayDiskInformation(FreeBlock* head) {
     printf("Disk Usage: %.2f%%\n", ((float)usedBlocks / MAX_NUMBER_OF_BLOCKS) * 100);
 }
 
+void freeFreeBlocks(FreeBlock** head) {
+    FreeBlock* current = *head;
+    while (current != NULL)
+    {
+        FreeBlock* next = current->next;
+        free(current);
+        current = next;
+    }
+    return;
+}
+
+void freeFileNodes(FileNode* node) {
+    if (node == NULL)
+    {
+        return;
+    }
+
+    FileNode* start = node;
+    FileNode* current = node;
+
+    do 
+    {
+        FileNode* nextNode = current->next;
+        if (current->child)
+        {
+            freeFileNodes(current->child);
+        }
+
+        free(current);
+        current = nextNode;
+    } while(current != NULL && current != start);
+}
+
+void handleCommand(char *input, FileNode **currentDirectory, FreeBlock **head, FreeBlock **tail, 
+                    FileNode *root, char (*virtualDisk)[BLOCK_SIZE] ) 
+{
+    char path[PATH_SIZE] = "";
+
+    if (strncmp(input, CMD_MKDIR, strlen(CMD_MKDIR)) == 0) {
+        const char* directoryName = input + strlen(CMD_MKDIR);
+        if (createNodeInDirectory(*currentDirectory, directoryName, false))
+            printf("Directory '%s' created successfully.\n", directoryName);
+        else
+            printf("Directory '%s' already exists.\n", directoryName);
+    }
+
+    else if (strncmp(input, CMD_CD, strlen(CMD_CD)) == 0) {
+        const char* directoryName = input + strlen(CMD_CD);
+        if (changeDirectory(currentDirectory, directoryName)) {
+            getWorkingDirectory(*currentDirectory, path);
+            printf("Moved to %s\n", path);
+        } else {
+            printf("Directory '%s' not found.\n", directoryName);
+        }
+    }
+
+    else if (strcmp(input, CMD_CD_PARENT) == 0) {
+        if (cdParent(currentDirectory)) {
+            getWorkingDirectory(*currentDirectory, path);
+            printf("Moved to %s\n", path);
+        } else {
+            printf("Already in root.\n");
+        }
+    }
+
+    else if (strcmp(input, CMD_LS) == 0) {
+        listChildren(*currentDirectory);
+    }
+
+    else if (strncmp(input, CMD_RMDIR, strlen(CMD_RMDIR)) == 0) {
+        const char* directoryName = input + strlen(CMD_RMDIR);
+        RmdirStatus status = removeDirectory(*currentDirectory, directoryName);
+        if (status == RMDIR_SUCCESS)
+            printf("Directory removed successfully.\n");
+        else if (status == RMDIR_NOT_FOUND)
+            printf("Directory '%s' not found.\n", directoryName);
+        else
+            printf("Directory not empty.\n");
+    }
+
+    else if (strcmp(input, CMD_PWD) == 0) {
+        getWorkingDirectory(*currentDirectory, path);
+        printf("%s\n", path);
+    }
+
+    else if (strncmp(input, CMD_CREATE, strlen(CMD_CREATE)) == 0) {
+        const char* fileName = input + strlen(CMD_CREATE);
+        if (createNodeInDirectory(*currentDirectory, fileName, true))
+            printf("File '%s' created successfully.\n", fileName);
+        else
+            printf("File '%s' already exists.\n", fileName);
+    }
+
+    else if (strncmp(input, CMD_WRITE, strlen(CMD_WRITE)) == 0) {
+        const char* remainingInput = input + strlen(CMD_WRITE);
+        char fileName[NAME_SIZE] = "";
+        char text[TEXT_SIZE] = "";
+
+        if (getDataFromString(remainingInput, fileName, text)) {
+            if (writeDataIntoFile(*currentDirectory, fileName, text, head, virtualDisk))
+                printf("Data written successfully (%lu bytes)\n", strlen(text));
+        } else {
+            printf("Invalid write command.\n");
+        }
+    }
+
+    else if (strncmp(input, CMD_READ, strlen(CMD_READ)) == 0) {
+        const char* fileName = input + strlen(CMD_READ);
+        if (!readFile(*currentDirectory, fileName, virtualDisk))
+            printf("File not found.\n");
+    }
+
+    else if (strncmp(input, CMD_DELETE, strlen(CMD_DELETE)) == 0) {
+        const char* fileName = input + strlen(CMD_DELETE);
+        if (deleteFile(*currentDirectory, fileName, head))
+            printf("File deleted successfully.\n");
+        else
+            printf("File not found.\n");
+    }
+
+    else if (strcmp(input, CMD_DF) == 0) {
+        displayDiskInformation(*head);
+    }
+
+    else if (strcmp(input, CMD_EXIT) == 0) {
+        free(virtualDisk);
+        freeFreeBlocks(head);
+        freeFileNodes(root);
+        printf("Memory released. Exiting program...\n");
+        exit(0);
+    }
+
+    else {
+        printf("Invalid command.\n");
+    }
+}
+
 int main() {
-    //Initialisation
-    char (*virtualDisk)[BLOCK_SIZE] = createVirtualDisk();
-
+    char (*virtualDisk)[BLOCK_SIZE] = NULL;
     FreeBlock *head = NULL, *tail = NULL;
-    createFreeBlocksStorage(&head, &tail);
+    FileNode *root = NULL;
 
-    FileNode *root = createRootDirectory();
-    FileNode *cwd = root;
+    initialiseVirtualFileSystem(&virtualDisk, &head, &tail, &root);
+    FileNode *currentDirectory = root;
     
     printf("Compact VFS - ready. Type 'exit' to quit.\n");
 
     char input[INPUT_SIZE];
-    while (strcmp(input, "exit") != 0)
+    while (true)
     {
-        printf("%s> ", cwd->name);
+        printf("%s> ", currentDirectory->name);
         
         fgets(input, INPUT_SIZE, stdin);
         input[strcspn(input, "\n")] = '\0';
 
-        char path[PATH_SIZE] = "";
-
-        if (strncmp(input, "mkdir ", 6) == 0) 
-        {
-            if (createNodeInDirectory(cwd, input + 6, false))
-            {
-                printf("Directory '%s' created successfully.\n", input + 6);
-            }
-            else
-            {
-                printf("Directory Name '%s' already exists.\n", input + 6);
-            }
-        }
-
-        else if (strncmp(input, "cd ", 3) == 0)
-        {
-            if (changeDirectory(&cwd, input + 3))
-            {
-                getWorkingDirectory(cwd, path);
-                printf("Moved to %s\n", path);
-            }
-            else 
-            {
-                printf("Directory '%s' does not exist under '%s'.\n", input + 3, cwd->name);
-            }
-        }
-
-        else if (strncmp(input, "cd..", 4) == 0)
-        {
-            if (cdParent(&cwd))
-            {
-                getWorkingDirectory(cwd, path);
-                printf("Moved to %s\n", path);
-            }
-            else 
-            {
-                printf("Already in the root directory.\n");
-            }
-        }
-
-        else if (strncmp(input, "ls", 2) == 0)
-        {
-            listChildren(cwd);
-        }
-
-        else if (strncmp(input, "rmdir ", 6) == 0)
-        {
-            RmdirStatus status = removeDirectory(cwd, input + 6);
-            if (status == RMDIR_SUCCESS)
-            {
-                printf("Directory removed successfuly.\n");
-            }
-            else if (status == RMDIR_NOT_FOUND)
-            {
-                printf("Directory '%s' does not exist under '%s'.\n", input + 6, cwd->name);
-            }
-            else 
-            {
-                printf("Failed to remove '%s': directory is not empty.\n", input + 6);
-            }
-        }
-
-        else if (strncmp(input, "pwd", 3) == 0)
-        {
-            getWorkingDirectory(cwd, path);
-            printf("%s\n", path);
-        }
-
-        else if (strncmp(input, "create ", 7) == 0)
-        {
-            if (createNodeInDirectory(cwd, input + 7, true))
-            {
-                printf("File '%s' created successfully.\n", input + 7);
-            }
-            else
-            {
-                printf("File Name '%s' already exists.\n", input + 7);
-            }
-        }
-
-        else if (strncmp(input, "write ", 6) == 0)
-        {
-            char fileName[NAME_SIZE] = "";
-            char text[TEXT_SIZE] = "";
-            if (getDataFromString(input + 6, fileName, text)) {
-                if (writeDataIntoFile(cwd, fileName, text, &head, virtualDisk))
-                {
-                    printf("Data written successfully (size=%d bytes)\n", strlen(text));
-                }
-            } 
-            else
-            {
-                printf("Error: Invalid Command Format.\n");
-            }
-        }
-
-        else if (strncmp(input, "read ", 5) == 0)
-        {
-            if (!readFile(cwd, input + 5, virtualDisk))
-            {
-                printf("File not found.\n");
-            }
-        }
-
-        else if (strncmp(input, "delete ", 7) == 0)
-        {
-            if (!deleteFile(cwd, input + 7, &head))
-            {
-                printf("File Not Found.\n");
-            }
-            else 
-            {
-                printf("File deleted successfully.\n");
-            }
-        }
-
-        else if (strncmp(input, "df", 2) == 0)
-        {
-            displayDiskInformation(head);
-        }
-
-        else {
-            printf("Invalid Command. Enter Again!\n");
-        }
-
+        handleCommand(input, &currentDirectory, &head, &tail, root, virtualDisk);
         printf("\n");
     }
 }
