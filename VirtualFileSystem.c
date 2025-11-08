@@ -3,12 +3,11 @@
 #include<stdbool.h>
 #include<string.h>
 
-//Virtual Disk
-#define BLOCK_SIZE 512 //Column Number
-#define MAX_NUMBER_OF_BLOCKS 1024 //Row Number 
+#define BLOCK_SIZE 512 
+#define MAX_NUMBER_OF_BLOCKS 1024 
 
 #define NAME_SIZE 50
-#define MAX_BLOCKS_PER_FILE 5
+#define MAX_BLOCKS_PER_FILE 1024
 
 #define INPUT_SIZE 100
 
@@ -40,7 +39,6 @@ typedef struct FreeBlock {
     struct FreeBlock* next;
 } FreeBlock;
 
-//Files and Directory
 typedef struct FileNode {
     char name[NAME_SIZE];
     bool isFile;
@@ -72,7 +70,7 @@ FileNode *createFileNode(char *name) {
         exit(1);
     }
     strcpy(newNode->name, name);
-    newNode->next = newNode; //Circular Linked List
+    newNode->next = newNode; 
     newNode->child = NULL;
     newNode->parent = NULL;
 
@@ -422,7 +420,7 @@ bool isFileWritable(FileNode* currentDirectory, FreeBlock** head, FreeBlock**tai
 
     freeFileBlocks(file, head, tail);
 
-    int neededBlocks = (strlen(text) + BLOCK_SIZE - 1) / BLOCK_SIZE; //Ceil Value
+    int neededBlocks = (strlen(text) + BLOCK_SIZE - 1) / BLOCK_SIZE; 
     int freeBlockSize = numberOfFreeBlocks(*head);
 
     if (freeBlockSize < neededBlocks)
