@@ -117,50 +117,49 @@ int numberOfFreeBlocks(FreeBlock* head) {
     return size;
 }
 
-FreeBlock* insertionAtEnd(FreeBlock* head, int value) {
+void insertionAtEnd(FreeBlock** head, FreeBlock** tail, int value) {
     FreeBlock* newNode = createFreeBlockNode(value);
 
-    if (head == NULL)
+    if (*head == NULL)
     {
-        head = newNode;
-        return head;
+        *head = *tail = newNode;
+        return;
     }
 
-    FreeBlock* temp = head;
-    while (temp->next != NULL)
-    {
-        temp = temp->next;
-    }
-
-    temp->next = newNode;
-    newNode->prev = temp;
-
-    return head;
+    (*tail)->next = newNode;
+    newNode->prev = *tail;
+    *tail = newNode;
 }
 
-FreeBlock* deletionAtHead(FreeBlock* head) {
-    if (head == NULL)
+void deletionAtHead(FreeBlock** head, FreeBlock** tail) {
+    if (*head == NULL)
     {
-        return NULL;
+        return;
     }
 
-    FreeBlock* toDelete = head;
-    head = toDelete->next;
-    head->prev = NULL;
+    FreeBlock* toDelete = *head;
+    *head = toDelete->next;
+
+    if (*head != NULL)
+    {
+        (*head)->prev = NULL;
+    }
+    else
+    {
+        *tail = NULL;
+    }
+
     free(toDelete);
     toDelete = NULL;
-
-    return head;
 }
 
-FreeBlock* allocateBlocksToFile(FreeBlock* head, int neededBlocks, int* blockPointers) {
-    while (neededBlocks--) 
+void allocateBlocksToFile(FreeBlock** head, FreeBlock** tail, int neededBlocks, int* blockPointers) {
+    while (neededBlocks-- && *head != NULL) 
     {
-        *blockPointers = head->data;
+        *blockPointers = (*head)->data;
         blockPointers++;
-        head = deletionAtHead(head);
+        deletionAtHead(head, tail);
     }
-    return head;
 }
 
 FileNode *createRootDirectory() {
@@ -391,7 +390,7 @@ bool getDataFromString(char* input, char* fileName, char* text) {
     return true;
 }
 
-FreeBlock* freeFileBlocks(FileNode* file, FreeBlock* head) {
+void freeFileBlocks(FileNode* file, FreeBlock** head, FreeBlock** tail) {
     if (file->blockPointers[0] != -1)
     {
         for (int index = 0; index < MAX_BLOCKS_PER_FILE; index++)
@@ -401,14 +400,13 @@ FreeBlock* freeFileBlocks(FileNode* file, FreeBlock* head) {
             {
                 break;
             }
-            head = insertionAtEnd(head, blockIndex);
+            insertionAtEnd(head, tail, blockIndex);
             file->blockPointers[index] = -1;
         }
     }
-    return head;
 }
 
-bool isFileWritable(FileNode* currentDirectory, FreeBlock** head, char* fileName, char* text) {
+bool isFileWritable(FileNode* currentDirectory, FreeBlock** head, FreeBlock**tail, char* fileName, char* text) {
     FileNode* file = isFileExists(currentDirectory->child, fileName);
     if (file == NULL )
     {
@@ -422,7 +420,7 @@ bool isFileWritable(FileNode* currentDirectory, FreeBlock** head, char* fileName
         return false;
     }
 
-    *head = freeFileBlocks(file, *head);
+    freeFileBlocks(file, head, tail);
 
     int neededBlocks = (strlen(text) + BLOCK_SIZE - 1) / BLOCK_SIZE; //Ceil Value
     int freeBlockSize = numberOfFreeBlocks(*head);
@@ -453,15 +451,15 @@ void writeTextToBlocks(FileNode* file, int neededBlocks, char* text, char (*virt
     }
 }
 
-bool writeDataIntoFile(FileNode* currentDirectory, char* fileName, char* text, FreeBlock** head, char (*virtualDisk)[BLOCK_SIZE]) {
-    if (!isFileWritable(currentDirectory, head, fileName, text))
+bool writeDataIntoFile(FileNode* currentDirectory, char* fileName, char* text, FreeBlock** head, FreeBlock** tail, char (*virtualDisk)[BLOCK_SIZE]) {
+    if (!isFileWritable(currentDirectory, head, tail, fileName, text))
     {
         return false;
     }
 
     FileNode* file = isFileExists(currentDirectory->child, fileName);
     int neededBlocks = (strlen(text) + BLOCK_SIZE - 1) / BLOCK_SIZE;
-    *head = allocateBlocksToFile(*head, neededBlocks, file->blockPointers);
+    allocateBlocksToFile(head, tail, neededBlocks, file->blockPointers);
 
     writeTextToBlocks(file, neededBlocks, text, virtualDisk);
 
@@ -488,14 +486,14 @@ bool readFile(FileNode* currentDirectory, char* fileName, char (*virtualDisk)[BL
     return true;
 }
 
-bool deleteFile(FileNode* currentDirectory, char* fileName, FreeBlock** head) {
+bool deleteFile(FileNode* currentDirectory, char* fileName, FreeBlock** head, FreeBlock** tail) {
     FileNode* file  = isFileExists(currentDirectory->child, fileName);
     if (file == NULL || file->isFile == false)
     {
         return false;
     }
 
-    *head = freeFileBlocks(file, *head);
+    freeFileBlocks(file, head, tail);
 
     FileNode* prev = NULL, *curr = currentDirectory->child;
     do
@@ -541,7 +539,7 @@ void displayDiskInformation(FreeBlock* head) {
     printf("Disk Usage: %.2f%%\n", ((float)usedBlocks / MAX_NUMBER_OF_BLOCKS) * 100);
 }
 
-void freeFreeBlocks(FreeBlock** head) {
+void freeFreeBlocks(FreeBlock** head, FreeBlock** tail) {
     FreeBlock* current = *head;
     while (current != NULL)
     {
@@ -549,6 +547,7 @@ void freeFreeBlocks(FreeBlock** head) {
         free(current);
         current = next;
     }
+    *tail = NULL;
     return;
 }
 
@@ -580,7 +579,7 @@ void handleCommand(char *input, FileNode **currentDirectory, FreeBlock **head, F
     char path[PATH_SIZE] = "";
 
     if (strncmp(input, CMD_MKDIR, strlen(CMD_MKDIR)) == 0) {
-        const char* directoryName = input + strlen(CMD_MKDIR);
+        char* directoryName = input + strlen(CMD_MKDIR);
         if (createNodeInDirectory(*currentDirectory, directoryName, false))
             printf("Directory '%s' created successfully.\n", directoryName);
         else
@@ -588,7 +587,7 @@ void handleCommand(char *input, FileNode **currentDirectory, FreeBlock **head, F
     }
 
     else if (strncmp(input, CMD_CD, strlen(CMD_CD)) == 0) {
-        const char* directoryName = input + strlen(CMD_CD);
+        char* directoryName = input + strlen(CMD_CD);
         if (changeDirectory(currentDirectory, directoryName)) {
             getWorkingDirectory(*currentDirectory, path);
             printf("Moved to %s\n", path);
@@ -611,7 +610,7 @@ void handleCommand(char *input, FileNode **currentDirectory, FreeBlock **head, F
     }
 
     else if (strncmp(input, CMD_RMDIR, strlen(CMD_RMDIR)) == 0) {
-        const char* directoryName = input + strlen(CMD_RMDIR);
+        char* directoryName = input + strlen(CMD_RMDIR);
         RmdirStatus status = removeDirectory(*currentDirectory, directoryName);
         if (status == RMDIR_SUCCESS)
             printf("Directory removed successfully.\n");
@@ -627,7 +626,7 @@ void handleCommand(char *input, FileNode **currentDirectory, FreeBlock **head, F
     }
 
     else if (strncmp(input, CMD_CREATE, strlen(CMD_CREATE)) == 0) {
-        const char* fileName = input + strlen(CMD_CREATE);
+        char* fileName = input + strlen(CMD_CREATE);
         if (createNodeInDirectory(*currentDirectory, fileName, true))
             printf("File '%s' created successfully.\n", fileName);
         else
@@ -635,12 +634,12 @@ void handleCommand(char *input, FileNode **currentDirectory, FreeBlock **head, F
     }
 
     else if (strncmp(input, CMD_WRITE, strlen(CMD_WRITE)) == 0) {
-        const char* remainingInput = input + strlen(CMD_WRITE);
+        char* remainingInput = input + strlen(CMD_WRITE);
         char fileName[NAME_SIZE] = "";
         char text[TEXT_SIZE] = "";
 
         if (getDataFromString(remainingInput, fileName, text)) {
-            if (writeDataIntoFile(*currentDirectory, fileName, text, head, virtualDisk))
+            if (writeDataIntoFile(*currentDirectory, fileName, text, head, tail, virtualDisk))
                 printf("Data written successfully (%lu bytes)\n", strlen(text));
         } else {
             printf("Invalid write command.\n");
@@ -648,14 +647,14 @@ void handleCommand(char *input, FileNode **currentDirectory, FreeBlock **head, F
     }
 
     else if (strncmp(input, CMD_READ, strlen(CMD_READ)) == 0) {
-        const char* fileName = input + strlen(CMD_READ);
+        char* fileName = input + strlen(CMD_READ);
         if (!readFile(*currentDirectory, fileName, virtualDisk))
             printf("File not found.\n");
     }
 
     else if (strncmp(input, CMD_DELETE, strlen(CMD_DELETE)) == 0) {
-        const char* fileName = input + strlen(CMD_DELETE);
-        if (deleteFile(*currentDirectory, fileName, head))
+        char* fileName = input + strlen(CMD_DELETE);
+        if (deleteFile(*currentDirectory, fileName, head, tail))
             printf("File deleted successfully.\n");
         else
             printf("File not found.\n");
@@ -667,7 +666,7 @@ void handleCommand(char *input, FileNode **currentDirectory, FreeBlock **head, F
 
     else if (strcmp(input, CMD_EXIT) == 0) {
         free(virtualDisk);
-        freeFreeBlocks(head);
+        freeFreeBlocks(head, tail);
         freeFileNodes(root);
         printf("Memory released. Exiting program...\n");
         exit(0);
