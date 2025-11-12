@@ -27,12 +27,6 @@
 #define CMD_PWD "pwd"
 #define CMD_EXIT "exit"
 
-typedef enum {
-    RMDIR_SUCCESS,
-    RMDIR_NOT_FOUND,
-    RMDIR_NOT_EMPTY
-} RmdirStatus;
-
 typedef struct FreeBlock {
     int data;
     struct FreeBlock* prev;
@@ -242,22 +236,46 @@ bool createNodeInDirectory(FileNode* currentDirectory, char* nodeName, bool isFi
     return true;
 }
 
-RmdirStatus removeDirectory(FileNode* currentDirectory, char* directoryName) {
+void freeFileBlocks(FileNode* file, FreeBlock** freeBlockHead, FreeBlock** freeBlockTail) {
+    if (file->blockPointers[0] != -1)
+    {
+        for (int index = 0; index < MAX_BLOCKS_PER_FILE; index++)
+        {
+            int blockIndex = file->blockPointers[index];
+            if (blockIndex == -1)
+            {
+                break;
+            }
+            insertionAtEnd(freeBlockHead, freeBlockTail, blockIndex);
+            file->blockPointers[index] = -1;
+        }
+    }
+}
+
+bool removeFileNode(FileNode* currentDirectory, char* nodeName, 
+    FreeBlock** freeBlockHead, FreeBlock** freeBlockTail, bool isRmdirCall) {
     if (currentDirectory->child == NULL)
     {
-        return RMDIR_NOT_FOUND;
+        return false;
     }
 
     FileNode* previousNode = NULL, *currentNode = currentDirectory->child;
 
     do
     {
-        if (strcmp(currentNode->name, directoryName) == 0 && !currentNode->isFile)
+        if (strcmp(currentNode->name, nodeName) == 0)
         {
-            if (currentNode->child)
+            if (!currentNode->isFile && currentNode->child)
             {
-                return RMDIR_NOT_EMPTY; 
+                printf("Directory not empty.\n");
+                return false; 
             }
+
+            if (currentNode->isFile)
+            {
+                freeFileBlocks(currentNode, freeBlockHead, freeBlockTail);
+            }
+
             if (currentNode->next == currentNode)
             {
                 currentDirectory->child = NULL;
@@ -276,15 +294,24 @@ RmdirStatus removeDirectory(FileNode* currentDirectory, char* directoryName) {
             {
                 previousNode->next = currentNode->next;
             }
+
             free(currentNode);
             currentNode = NULL;
-            return RMDIR_SUCCESS;
+            return true;
         }
         previousNode = currentNode;
         currentNode = currentNode->next;
     } while (currentNode != currentDirectory->child);
 
-    return RMDIR_NOT_FOUND;
+    if (isRmdirCall)
+    {
+        printf("Directory '%s' not found.\n", nodeName);
+    }
+    return false;
+}
+
+bool removeDirectory(FileNode* currentDirectory, char* directoryName) {
+    return removeFileNode(currentDirectory, directoryName, NULL, NULL, true);
 }
 
 bool changeDirectory(FileNode** currentDirectory, char *directoryName) {
@@ -394,22 +421,6 @@ bool getDataFromString(char* input, char* fileName, char* text) {
     return true;
 }
 
-void freeFileBlocks(FileNode* file, FreeBlock** freeBlockHead, FreeBlock** freeBlockTail) {
-    if (file->blockPointers[0] != -1)
-    {
-        for (int index = 0; index < MAX_BLOCKS_PER_FILE; index++)
-        {
-            int blockIndex = file->blockPointers[index];
-            if (blockIndex == -1)
-            {
-                break;
-            }
-            insertionAtEnd(freeBlockHead, freeBlockTail, blockIndex);
-            file->blockPointers[index] = -1;
-        }
-    }
-}
-
 bool isFileWritable(FileNode* currentDirectory, FreeBlock** freeBlockHead, FreeBlock**freeBlockTail, char* fileName, char* text) {
     FileNode* file = isFileExists(currentDirectory->child, fileName);
     if (file == NULL )
@@ -494,46 +505,7 @@ bool readFile(FileNode* currentDirectory, char* fileName, char (*virtualDisk)[BL
 }
 
 bool deleteFile(FileNode* currentDirectory, char* fileName, FreeBlock** freeBlockHead, FreeBlock** freeBlockTail) {
-    FileNode* file  = isFileExists(currentDirectory->child, fileName);
-    if (file == NULL || file->isFile == false)
-    {
-        return false;
-    }
-
-    freeFileBlocks(file, freeBlockHead, freeBlockTail);
-
-    FileNode* previousNode = NULL, *currentNode = currentDirectory->child;
-    do
-    {
-        if (strcmp(currentNode->name, fileName) == 0 && currentNode->isFile)
-        {
-            if (currentNode->next == currentNode)
-            {
-                currentDirectory->child = NULL;
-            }
-            else if (previousNode == NULL)
-            {
-                FileNode* last = currentDirectory->child;
-                while (last->next != currentDirectory->child) 
-                {
-                    last = last->next;
-                }
-                last->next = currentNode->next;
-                currentDirectory->child = currentNode->next;
-            }
-            else 
-            {
-                previousNode->next = currentNode->next;
-            }
-            free(currentNode);
-            currentNode = NULL;
-            return true;
-        }
-        previousNode = currentNode;
-        currentNode = currentNode->next;
-    } while (currentNode != currentDirectory->child);
-    
-    return false;
+    return removeFileNode(currentDirectory, fileName, freeBlockHead, freeBlockTail, false);
 }
 
 void displayDiskInformation(FreeBlock* freeBlockHead) {
@@ -617,18 +589,10 @@ void handleCdParent(FileNode** currentDirectory, char* path) {
 
 void handleRmdir(char* input, FileNode** currentDirectory) {
     char* directoryName = input + strlen(CMD_RMDIR);
-    RmdirStatus status = removeDirectory(*currentDirectory, directoryName);
-    if (status == RMDIR_SUCCESS) 
+
+    if (removeDirectory(*currentDirectory, directoryName)) 
     {
         printf("Directory removed successfully.\n");
-    }
-    else if (status == RMDIR_NOT_FOUND)
-    {
-        printf("Directory '%s' not found.\n", directoryName);
-    }
-    else
-    {
-        printf("Directory not empty.\n");
     }
 }
 
@@ -784,3 +748,5 @@ int main() {
         printf("\n");
     }
 }
+
+
