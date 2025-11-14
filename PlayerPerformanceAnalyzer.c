@@ -32,7 +32,8 @@ typedef struct Team {
     int id;
     char name[NAME_SIZE];
     int totalPlayers;
-    float averageBattingStrikeRate; //consider strike rate of batters and all-rounders only
+    int battingPlayerCount;
+    float averageBattingStrikeRate;
     PlayerData* playersHead; //Head of LL of players
 } Team;
 
@@ -56,6 +57,7 @@ void createTeam(Team* currentTeam, int teamId, const char* teamName) {
     currentTeam->id = teamId;
     strcpy(currentTeam->name, teamName);
     currentTeam->totalPlayers = 0;
+    currentTeam->battingPlayerCount = 0;
     currentTeam->averageBattingStrikeRate = 0;
     currentTeam->playersHead = NULL;
 }
@@ -91,23 +93,35 @@ Team* initialiseTeams() {
     return team;
 }
 
-bool getTeamByName(Team* teams, const char *teamName, Team* team) {
+bool searchTeamByName(Team* teams, const char *teamName, int* teamIndex) {
     Team foundTeam;
     for (int index = 0; index < teamCount; index++)
     {
         if (strcmp(teams[index].name, teamName) == 0)
         {
-            *team = teams[index];
+            *teamIndex = index;
             return true;
         }
     }
     return false;
 }
 
+void updateAverageBattingStrikeRate(Team* team, PlayerData* player) {
+    float totalBattingStrikeRate = team->averageBattingStrikeRate * team->battingPlayerCount;
+    team->battingPlayerCount += 1;
+    team->averageBattingStrikeRate = (totalBattingStrikeRate + player->strikeRate) / team->battingPlayerCount;
+}
+
 void addPlayerToTeam(Team* team, PlayerData* newPlayer) {
+    newPlayer->next = NULL;
     if (team->playersHead == NULL)
     {
         team->playersHead = newPlayer;
+        team->totalPlayers += 1;
+        if (newPlayer->role != BOWLER)
+        {
+            updateAverageBattingStrikeRate(team, newPlayer);
+        }
         return;
     }
 
@@ -117,6 +131,11 @@ void addPlayerToTeam(Team* team, PlayerData* newPlayer) {
         temp = temp->next;
     }
     temp->next = newPlayer;
+    team->totalPlayers += 1;
+    if (newPlayer->role != BOWLER)
+    {
+        updateAverageBattingStrikeRate(team, newPlayer);
+    }
 }
 
 bool createPlayer(Team* teams, Player player) {
@@ -147,11 +166,11 @@ bool createPlayer(Team* teams, Player player) {
     newPlayer->economyRate = player.economyRate;
     calculatePerformanceIndex(newPlayer);
 
-    Team team;
-    getTeamByName(teams, player.team, &team);
-    if (getTeamByName(teams, player.team, &team))
+    int index;
+
+    if (searchTeamByName(teams, player.team, &index))
     {
-        addPlayerToTeam(&team, newPlayer);
+        addPlayerToTeam(&teams[index], newPlayer);
     }
     else
     {
@@ -170,6 +189,21 @@ bool initialisePlayers(Team* teams) {
         }
     }
     return true;
+}
+
+PlayerRole getPlayerRoleByChoice(int choice) {
+    if (choice == 1)
+    {
+        return BATSMAN;
+    }
+    else if (choice == 2)
+    {
+        return BOWLER;
+    }
+    else if (choice == 3)
+    {
+        return ALL_ROUNDER;
+    }
 }
 
 PlayerData* createNewPlayer() {
@@ -191,33 +225,22 @@ PlayerData* createNewPlayer() {
     int choice = 0;
     printf("Role (1-Batsman, 2-Bowler, 3-All-rounder): ");
     scanf("%d", &choice);
-    if (choice == 1)
-    {
-        player->role = BATSMAN;
-    }
-    else if (choice == 2)
-    {
-        player->role = BOWLER;
-    }
-    else if (choice == 3)
-    {
-        player->role = ALL_ROUNDER;
-    }
+    player->role = getPlayerRoleByChoice(choice);
 
     printf("Total Runs: ");
-    scanf("%d", player->totalRuns);
+    scanf("%d", &player->totalRuns);
    
     printf("Batting Average: ");
-    scanf("%f", player->battingAverage);
+    scanf("%f", &player->battingAverage);
 
     printf("Strike Rate: ");
-    scanf("%f", player->strikeRate);
+    scanf("%f", &player->strikeRate);
 
     printf("Wickets: ");
-    scanf("%d", player->wickets);
+    scanf("%d", &player->wickets);
 
     printf("Economy Rate: ");
-    scanf("%f", player->economyRate);
+    scanf("%f", &player->economyRate);
 
     calculatePerformanceIndex(player);
 
@@ -242,6 +265,117 @@ bool addNewPlayerToTeam(Team* team, int teamId) {
     return true;
 }
 
+char *getRole(PlayerRole role) {
+    if (role == BATSMAN)
+    {
+        return "Batsman";
+    }
+    else if (role == BOWLER)
+    {
+        return "Bowler";
+    }
+    else if (role == ALL_ROUNDER)
+    {
+        return "All-Rounder";
+    }
+}
+
+bool displayTeamData(Team* team, int teamId) {
+    Team* currentTeam = searchTeamById(team, teamId);
+    if (currentTeam == NULL)
+    {
+        return false;
+    }
+
+    printf("\nPlayers of Team %s\n", currentTeam->name);
+    printf("=========================================================================================\n");
+    printf("%-5s %-15s %-12s %-8s %-8s %-8s %-8s %-8s %-12s\n", "ID", "Name", "Role", "Runs", "Avg", "SR", "Wkts", "ER", "Perf.Index");
+    printf("=========================================================================================\n");
+    
+    PlayerData* temp = currentTeam->playersHead;
+    while (temp)
+    {
+        char* role = getRole(temp->role);
+        printf("%-5d %-15s %-12s %-8d %-8.1f %-8.1f %-8d %-8.1f %-12.2f\n",
+           temp->id,
+           temp->name,
+           role,
+           temp->totalRuns,
+           temp->battingAverage,
+           temp->strikeRate,
+           temp->wickets,
+           temp->economyRate,
+           temp->performanceIndex
+        );
+
+        temp = temp->next;
+    }
+
+    printf("\nTotal Players: %d\n", currentTeam->totalPlayers);
+    printf("Average Batting Strike Rate: %.2f\n", currentTeam->averageBattingStrikeRate);
+
+    return true;
+}
+
+void swap(Team* team1, Team* team2) {
+    Team temp = *team1;
+    *team1 = *team2;
+    *team2 = temp;
+}
+
+int partitionIndex(Team* team, int low, int high) {
+    Team pivot = team[high];
+    int largerIndex = low - 1;
+
+    for (int currentIndex = low; currentIndex < high; currentIndex++)
+    {
+        if (team[currentIndex].averageBattingStrikeRate > pivot.averageBattingStrikeRate)
+        {
+            largerIndex++;
+            swap(&team[currentIndex], &team[largerIndex]);
+        }
+    }
+    swap(&team[largerIndex + 1], &team[high]);
+    return largerIndex + 1;
+}
+
+void quickSort(Team* team, int low, int high) {
+    if (low < high)
+    {
+        int partition = partitionIndex(team, low, high);
+
+        quickSort(team, low, partition - 1);
+        quickSort(team, partition + 1, high);
+    }
+}
+
+void displaySortedTeams(Team* team) {
+    Team temp[teamCount];
+    for (int index = 0; index < teamCount; index++)
+    {
+        temp[index] = team[index];
+    }
+    quickSort(temp, 0, teamCount - 1);
+
+    printf("\n=========================================================================================\n");
+    printf("%-10s %-20s %-12s %-10s\n", "ID", "Team Name", "Avg Bat SR", "Total Players");
+    printf("=========================================================================================\n");
+
+    for (int index = 0; index < teamCount; index++)
+    {
+        printf("%-10d %-20s %-12.2f %-10d\n", temp[index].id, temp[index].name, temp[index].averageBattingStrikeRate, temp[index].totalPlayers);
+    }
+}
+
+bool getTopKPlayers(Team* team, int teamId, PlayerRole role, int k) {
+    Team* currentTeam = searchTeamById(team, teamId);
+    if (currentTeam == NULL) 
+    {
+        return false;
+    }
+
+
+}
 
 int main() {
     Team* team = initialiseTeams();
@@ -256,39 +390,74 @@ int main() {
         return 0;
     }
     
-    printf("==============================================================================\n");
-    printf("                      ICC ODI Player Performance Analyzer                      \n");
-    printf("==============================================================================\n");
-    printf("1. Add Player to Team\n");
-    printf("2. Display Players of a Specific Team\n");
-    printf("3. Display Teams by Average Batting Strike Rate\n");
-    printf("4. Display Top K Players of a Specific Team by Role\n");
-    printf("5. Display All Players of Specific Role Across All Teams by Performance Index\n");
-    printf("6. Exit\n");
-    printf("==============================================================================\n");
-    
     int choice;
 
     while(true)
     {
+        printf("\n=========================================================================================\n");
+        printf("                             ICC ODI Player Performance Analyzer                         \n");
+        printf("=========================================================================================\n");
+        printf("1. Add Player to Team\n");
+        printf("2. Display Players of a Specific Team\n");
+        printf("3. Display Teams by Average Batting Strike Rate\n");
+        printf("4. Display Top K Players of a Specific Team by Role\n");
+        printf("5. Display All Players of Specific Role Across All Teams by Performance Index\n");
+        printf("6. Exit\n");
+        printf("=========================================================================================\n");
+
         printf("\nEnter your choice: ");
         scanf("%d", &choice);
+        int teamId;
         switch(choice) 
         {
             case 1: 
-                {
-                    int teamId;
                     printf("Enter Team ID to add player: ");
                     scanf("%d", &teamId);
                     if (addNewPlayerToTeam(team, teamId))
                     {
-                        printf("Player Added Successfully to Team %s", team[teamId].name);
+                        printf("\nPlayer Added Successfully to Team %s!\n", team[teamId-1].name);
                     }
                     else 
                     {
-                        printf("Team Not Found.");
+                        printf("Team Not Found.\n");
                     }
-                }
+                    break;
+
+            case 2:
+                    printf("Enter Team ID: ");
+                    scanf("%d", &teamId);
+                    if (!displayTeamData(team, teamId))
+                    {
+                        printf("Team Not Found.\n");
+                    }
+                    break;
+
+            case 3:
+                    printf("Teams Sorted by Average Batting Strike Rate");
+                    displaySortedTeams(team);
+                    break;
+            
+            case 4:
+                    printf("Enter Team ID: ");
+                    scanf("%d", &teamId);
+
+                    int choice;
+                    printf("Enter Role (1-Batsman, 2-Bowler, 3-All-Rounder): ");
+                    scanf("%d", &choice);
+                    PlayerRole role = getPlayerRoleByChoice(choice);
+
+                    int k;
+                    printf("Enter number of players: ");
+                    scanf("%d", &k);
+
+                    if (!getTopKPlayers(team, teamId, role, k))
+                    {
+                        printf("Team Not Found.\n");
+                    }
+                    break;
+            
+            
+            
         }
     }
 
