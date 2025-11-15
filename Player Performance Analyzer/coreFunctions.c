@@ -1,4 +1,3 @@
-#include<stdio.h>
 #include "header.h"
 
 void createTeam(Team* currentTeam, int teamId, const char* teamName) {
@@ -114,7 +113,7 @@ PlayerData* createNewPlayer() {
 
     printf("\nEnter Player Details: \n");
     printf("Player ID: ");
-    scanf("%d", &player->id);
+    getValidInteger(&player->id);
 
     while (getchar() != '\n');
     printf("Name: ");
@@ -123,23 +122,23 @@ PlayerData* createNewPlayer() {
 
     int choice = 0;
     printf("Role (1-Batsman, 2-Bowler, 3-All-rounder): ");
-    scanf("%d", &choice);
+    getValidInteger(&choice);
     player->role = (PlayerRole)choice;
 
     printf("Total Runs: ");
-    scanf("%d", &player->totalRuns);
+    getValidInteger(&player->totalRuns);
    
     printf("Batting Average: ");
-    scanf("%f", &player->battingAverage);
+    getValidFloat(&player->battingAverage);
 
     printf("Strike Rate: ");
-    scanf("%f", &player->strikeRate);
+    getValidFloat(&player->strikeRate);
 
     printf("Wickets: ");
-    scanf("%d", &player->wickets);
+    getValidInteger(&player->wickets);
 
     printf("Economy Rate: ");
-    scanf("%f", &player->economyRate);
+    getValidFloat(&player->economyRate);
 
     calculatePerformanceIndex(player);
 
@@ -149,6 +148,10 @@ PlayerData* createNewPlayer() {
 bool addNewPlayerToTeam(Team* team, int teamId) {
     Team* currentTeam = searchTeamById(team, teamId);
     if (currentTeam == NULL)
+    {
+        return false;
+    }
+    if (currentTeam->totalPlayers == MAX_PLAYERS_IN_TEAM)
     {
         return false;
     }
@@ -219,7 +222,7 @@ bool displaySortedTeams(Team* team) {
     return true;
 }
 
-bool getTopKPlayers(Team* team, int teamId, PlayerRole role, int k) {
+bool getTopKPlayers(Team* team, int teamId, PlayerRole role, int topCount) {
     Team* currentTeam = searchTeamById(team, teamId);
     if (currentTeam == NULL) 
     {
@@ -232,7 +235,7 @@ bool getTopKPlayers(Team* team, int teamId, PlayerRole role, int k) {
     PlayerData** head = getHeadByRole(currentTeam, role);
     PlayerData* temp = *head; 
 
-    while (temp && k--)
+    while (temp && topCount--)
     {
         displayPlayerDetails(temp);
         temp = temp->next;     

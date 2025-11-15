@@ -1,5 +1,20 @@
-#include<stdio.h>
 #include "header.h"
+
+void getValidInteger(int* value) {
+    while(scanf("%d", value) != 1)
+    {
+        printf("Invalid Character! Enter Again: ");
+        while (getchar() != '\n');
+    }
+}
+
+void getValidFloat(float* value) {
+    while(scanf("%f", value) != 1)
+    {
+        printf("Invalid Character! Enter Again: ");
+        while (getchar() != '\n');
+    }
+}
 
 PlayerRole getRoleByString(const char* role) {
     if (strcmp(role, STR_ALL_ROUNDER) == 0)

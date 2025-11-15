@@ -9,6 +9,7 @@
 
 #define NAME_SIZE 100
 #define TEAM_NAME_SIZE 100
+#define MAX_PLAYERS_IN_TEAM 50
 #define STR_BOWLER "Bowler"
 #define STR_BATSMAN "Batsman"
 #define STR_ALL_ROUNDER "All-rounder"
@@ -60,6 +61,7 @@ void handleAddPlayer(Team* team, int teamId);
 void handleTopKPlayers(Team* team, int teamId);
 void handleChoice(Team* team);
 
+//Core Functions
 void createTeam(Team* currentTeam, int teamId, const char* teamName);
 Team* initialiseTeams();
 void addPlayerToTeam(Team* team, PlayerData* newPlayer);
@@ -75,6 +77,9 @@ void displaySortedPlayersOfRole(Team* team, PlayerRole role);
 void freePlayers(PlayerData* head);
 void freeAllTeams(Team* team);
 
+//Helper Functions
+void getValidInteger(int* value);
+void getValidFloat(float* value);
 PlayerRole getRoleByString(const char* role);
 void calculatePerformanceIndex(PlayerData* player);
 Team* searchTeamByName(Team* team, const char *teamName);
@@ -91,6 +96,5 @@ void initialiseHeap(Team* team, PlayerRole role, HeapNode* heap, int* heapSize);
 void maxHeapify(HeapNode* heap, int size, int index);
 void buildMaxHeap(HeapNode* heap, int heapSize);
 HeapNode extractMax(HeapNode heap[], int *heapSize);
-
 
 #endif

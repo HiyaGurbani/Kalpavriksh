@@ -16,7 +16,7 @@ void displayMenu() {
 
 void handleAddPlayer(Team* team, int teamId) {
     printf("Enter Team ID to add player: ");
-    scanf("%d", &teamId);
+    getValidInteger(&teamId);
 
     if (addNewPlayerToTeam(team, teamId))
     {
@@ -30,18 +30,19 @@ void handleAddPlayer(Team* team, int teamId) {
 
 void handleTopKPlayers(Team* team, int teamId) {
     printf("Enter Team ID: ");
-    scanf("%d", &teamId);
+    getValidInteger(&teamId);
 
     int choice;
     printf("Enter Role (1-Batsman, 2-Bowler, 3-All-Rounder): ");
-    scanf("%d", &choice);
+    getValidInteger(&choice);
+
     PlayerRole role = (PlayerRole)choice;
 
-    int k;
+    int topCount;
     printf("Enter number of players: ");
-    scanf("%d", &k);
+    getValidInteger(&topCount);
 
-    if (!getTopKPlayers(team, teamId, role, k))
+    if (!getTopKPlayers(team, teamId, role, topCount))
     {
         printf("Team Not Found.\n");                
     }                                
@@ -50,7 +51,7 @@ void handleTopKPlayers(Team* team, int teamId) {
 void handleChoice(Team* team) {
     int choice;
     printf("\nEnter your choice: ");
-    scanf("%d", &choice);
+    getValidInteger(&choice);
 
     int teamId;
     switch(choice) 
@@ -61,7 +62,8 @@ void handleChoice(Team* team) {
 
         case 2:
             printf("Enter Team ID: ");
-            scanf("%d", &teamId);
+            getValidInteger(&teamId);
+
             if (!displayTeamData(team, teamId))
             {
                 printf("Team Not Found.\n");
@@ -82,7 +84,8 @@ void handleChoice(Team* team) {
         
         case 5:
             printf("Enter Role (1-Batsman, 2-Bowler, 3-All-Rounder): ");
-            scanf("%d", &choice);
+            getValidInteger(&choice);
+
             PlayerRole role = (PlayerRole)choice;
             displaySortedPlayersOfRole(team, role);
             break;
