@@ -39,6 +39,12 @@ typedef struct Team {
     PlayerData* allRounderHead;
 } Team;
 
+
+typedef struct HeapNode {
+    PlayerData* player;
+    int teamId;
+} HeapNode;
+
 void calculatePerformanceIndex(PlayerData* player) {
     if (player->role == BATSMAN)
     {
@@ -450,6 +456,142 @@ bool getTopKPlayers(Team* team, int teamId, PlayerRole role, int k) {
     return true;
 }
 
+
+
+void initialiseHeap(Team* team, PlayerRole role, HeapNode* heap, int* heapSize) {
+    for (int index = 0; index < teamCount; index++)
+    {
+        PlayerData* head = NULL;
+        if (role == BATSMAN)
+        {
+            head = team[index].batsmanHead;
+        }
+        else if (role == BOWLER)
+        {
+            head = team[index].bowlerHead;
+        }
+        else if (role == ALL_ROUNDER)
+        {
+            head = team[index].allRounderHead;
+        }
+
+        if (head != NULL) {
+            heap[*heapSize].player = head;
+            heap[*heapSize].teamId = team[index].id; 
+            (*heapSize)++;
+        }
+    }
+}
+
+void maxHeapify(HeapNode* heap, int size, int i) {
+    int largest = i;
+    int leftChild = 2 * i + 1;
+    int rightChild = 2 * i + 2;
+
+    if (leftChild < size && heap[leftChild].player->performanceIndex > heap[largest].player->performanceIndex)
+    {
+        largest = leftChild;
+    }
+
+    if (rightChild < size && heap[rightChild].player->performanceIndex > heap[largest].player->performanceIndex)
+    {
+        largest = rightChild;
+    }
+
+    if (largest != i)
+    {
+        HeapNode temp = heap[i];
+        heap[i] = heap[largest];
+        heap[largest] = temp;
+
+        maxHeapify(heap, size, largest);
+    }
+}
+
+void buildMaxHeap(HeapNode* heap, int size) {
+    // Start start from the last non-leaf node
+    for (int index = size / 2 - 1; index >= 0; index--)
+    {
+        maxHeapify(heap, size, index);
+    }
+}
+
+HeapNode extractMax(HeapNode heap[], int *size) {
+    if (*size <= 0) 
+    {
+        return (HeapNode){NULL, -1};
+    }
+
+    HeapNode root = heap[0];
+
+    heap[0] = heap[*size - 1];
+    (*size)--;
+
+    maxHeapify(heap, *size, 0);
+    return root;
+}
+
+void displayPlayersByRoleUsingHeap(Team* team, PlayerRole role) {
+    int heapSize = 0;
+    HeapNode heap[teamCount];
+
+    initialiseHeap(team, role, heap, &heapSize);
+
+    buildMaxHeap(heap, heapSize);
+
+    while (heapSize > 0)
+    {
+        HeapNode top = extractMax(heap, &heapSize);
+
+        char* role = getRole(top.player->role);
+        printf("%-5d %-15s %-12s %-8d %-8.1f %-8.1f %-8d %-8.1f %-12.2f\n",
+            top.player->id,
+            top.player->name,
+            role,
+            top.player->totalRuns,
+            top.player->battingAverage,
+            top.player->strikeRate,
+            top.player->wickets,
+            top.player->economyRate,
+            top.player->performanceIndex
+        );
+
+        if (top.player->next != NULL)
+        {
+            heap[heapSize].player = heap[0].player;
+            heap[heapSize].teamId = heap[0].teamId;
+
+            heap[0].player = top.player->next;
+            heap[0].teamId = top.teamId;
+            heapSize++;
+
+            maxHeapify(heap, heapSize, 0);
+        }
+    }
+}
+
+void displayPlayersOfSpecificRole(Team* team, PlayerRole role) {
+    if (role == BATSMAN) 
+    {
+        printf("Batsmen of all teams: \n");
+    }
+    else if (role == BOWLER) 
+    {
+        printf("Bowlers of all teams: ");
+    }
+    else 
+    {
+        printf("All-rounders of all teams: ");
+    }
+
+    printf("=========================================================================================\n");
+    printf("%-5s %-15s %-12s %-8s %-8s %-8s %-8s %-8s %-12s\n", "ID", "Name", "Role", "Runs", "Avg", "SR", "Wkts", "ER", "Perf.Index");
+    printf("=========================================================================================\n");
+
+    displayPlayersByRoleUsingHeap(team, role);
+
+}
+
 int main() {
     Team* team = initialiseTeams();
     if (team == NULL)
@@ -529,7 +671,19 @@ int main() {
                     }
                     break;
             
+            case 5:
+                    printf("Enter Role (1-Batsman, 2-Bowler, 3-All-Rounder): ");
+                    scanf("%d", &choice);
+                    role = getPlayerRoleByChoice(choice);
+
+                    displayPlayersOfSpecificRole(team, role);
+                    break;
             
+            case 6:
+                    return 0;
+            
+            default:
+                    printf("Invalid Choice.");
             
         }
     }
