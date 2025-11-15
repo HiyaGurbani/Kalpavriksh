@@ -13,11 +13,10 @@ typedef enum {
     ALL_ROUNDER
 } PlayerRole;
 
-//We actually don't need all those things except performanceIndex
 typedef struct PlayerData {
     int id;
     char name[NAME_SIZE];
-    char teamName[TEAM_NAME_SIZE]; //It can be a struct type of team too 
+    char teamName[TEAM_NAME_SIZE]; 
     PlayerRole role;
     int totalRuns;
     float battingAverage;
@@ -34,7 +33,10 @@ typedef struct Team {
     int totalPlayers;
     int battingPlayerCount;
     float averageBattingStrikeRate;
-    PlayerData* playersHead; //Head of LL of players
+    // PlayerData* playersHead; //Head of LL of players
+    PlayerData* batsmanHead;
+    PlayerData* bowlerHead;
+    PlayerData* allRounderHead;
 } Team;
 
 void calculatePerformanceIndex(PlayerData* player) {
@@ -59,7 +61,10 @@ void createTeam(Team* currentTeam, int teamId, const char* teamName) {
     currentTeam->totalPlayers = 0;
     currentTeam->battingPlayerCount = 0;
     currentTeam->averageBattingStrikeRate = 0;
-    currentTeam->playersHead = NULL;
+    // currentTeam->playersHead = NULL;
+    currentTeam->batsmanHead = NULL;
+    currentTeam->bowlerHead = NULL;
+    currentTeam->allRounderHead = NULL;
 }
 
 
@@ -114,23 +119,45 @@ void updateAverageBattingStrikeRate(Team* team, PlayerData* player) {
 
 void addPlayerToTeam(Team* team, PlayerData* newPlayer) {
     newPlayer->next = NULL;
-    if (team->playersHead == NULL)
+    strcpy(newPlayer->teamName, team->name);
+
+    PlayerData **head;
+    if (newPlayer->role == BATSMAN)
     {
-        team->playersHead = newPlayer;
-        team->totalPlayers += 1;
-        if (newPlayer->role != BOWLER)
+        head = &(team->batsmanHead);
+    }
+    else if (newPlayer->role == BOWLER)
+    {
+        head = &(team->bowlerHead);
+    }
+    else 
+    {
+        head = &(team->allRounderHead);
+    }
+    
+    if (*head == NULL)
+    {
+        *head = newPlayer;
+    }
+    else 
+    {
+        if (newPlayer->performanceIndex > (*head)->performanceIndex)
         {
-            updateAverageBattingStrikeRate(team, newPlayer);
+            newPlayer->next = *head;
+            *head = newPlayer;
         }
-        return;
+        else
+        {
+            PlayerData* temp = *head;
+            while (temp->next != NULL && temp->next->performanceIndex > newPlayer->performanceIndex)
+            {
+                temp = temp->next;
+            }
+            newPlayer->next = temp->next;
+            temp->next = newPlayer;
+        }
     }
 
-    PlayerData* temp = team->playersHead;
-    while  (temp->next != NULL)
-    {
-        temp = temp->next;
-    }
-    temp->next = newPlayer;
     team->totalPlayers += 1;
     if (newPlayer->role != BOWLER)
     {
@@ -291,24 +318,33 @@ bool displayTeamData(Team* team, int teamId) {
     printf("=========================================================================================\n");
     printf("%-5s %-15s %-12s %-8s %-8s %-8s %-8s %-8s %-12s\n", "ID", "Name", "Role", "Runs", "Avg", "SR", "Wkts", "ER", "Perf.Index");
     printf("=========================================================================================\n");
-    
-    PlayerData* temp = currentTeam->playersHead;
-    while (temp)
-    {
-        char* role = getRole(temp->role);
-        printf("%-5d %-15s %-12s %-8d %-8.1f %-8.1f %-8d %-8.1f %-12.2f\n",
-           temp->id,
-           temp->name,
-           role,
-           temp->totalRuns,
-           temp->battingAverage,
-           temp->strikeRate,
-           temp->wickets,
-           temp->economyRate,
-           temp->performanceIndex
-        );
 
-        temp = temp->next;
+    PlayerData* lists[3] = {
+        currentTeam->batsmanHead,
+        currentTeam->bowlerHead,
+        currentTeam->allRounderHead
+    };
+    
+    for (int index = 0; index < 3; index++)
+    {
+        PlayerData* temp = lists[index];
+        while (temp)
+        {
+            char* role = getRole(temp->role);
+            printf("%-5d %-15s %-12s %-8d %-8.1f %-8.1f %-8d %-8.1f %-12.2f\n",
+            temp->id,
+            temp->name,
+            role,
+            temp->totalRuns,
+            temp->battingAverage,
+            temp->strikeRate,
+            temp->wickets,
+            temp->economyRate,
+            temp->performanceIndex
+            );
+
+            temp = temp->next;
+        }
     }
 
     printf("\nTotal Players: %d\n", currentTeam->totalPlayers);
@@ -374,7 +410,44 @@ bool getTopKPlayers(Team* team, int teamId, PlayerRole role, int k) {
         return false;
     }
 
+    printf("\nPlayers of Team %s\n", currentTeam->name);
+    printf("=========================================================================================\n");
+    printf("%-5s %-15s %-12s %-8s %-8s %-8s %-8s %-8s %-12s\n", "ID", "Name", "Role", "Runs", "Avg", "SR", "Wkts", "ER", "Perf.Index");
+    printf("=========================================================================================\n");
 
+    PlayerData* temp; 
+    if (role == BATSMAN)
+    {
+        temp = team->batsmanHead;
+    }
+    else if (role == BOWLER)
+    {
+        temp = team->bowlerHead;
+    }
+    else
+    {
+        temp = team->allRounderHead;
+    }
+
+    while (temp && k--)
+    {
+        char* role = getRole(temp->role);
+        printf("%-5d %-15s %-12s %-8d %-8.1f %-8.1f %-8d %-8.1f %-12.2f\n",
+            temp->id,
+            temp->name,
+            role,
+            temp->totalRuns,
+            temp->battingAverage,
+            temp->strikeRate,
+            temp->wickets,
+            temp->economyRate,
+            temp->performanceIndex
+        );
+
+        temp = temp->next;     
+    }
+
+    return true;
 }
 
 int main() {
