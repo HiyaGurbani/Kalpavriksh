@@ -104,7 +104,7 @@ bool initialisePlayers(Team* team) {
     return true;
 }
 
-PlayerData* createNewPlayer() {
+PlayerData* createNewPlayer(Team* team) {
     PlayerData* player = malloc(sizeof(PlayerData));
     if (player == NULL)
     {
@@ -112,8 +112,13 @@ PlayerData* createNewPlayer() {
     }
 
     printf("\nEnter Player Details: \n");
+
     printf("Player ID: ");
     getValidInteger(&player->id);
+    while(!isUniquePlayerId(team, player->id)) {
+        printf("Error: Id already exists! Enter again: ");
+        getValidInteger(&player->id);       
+    }
 
     while (getchar() != '\n');
     printf("Name: ");
@@ -156,7 +161,7 @@ bool addNewPlayerToTeam(Team* team, int teamId) {
         return false;
     }
 
-    PlayerData* newPlayer = createNewPlayer();
+    PlayerData* newPlayer = createNewPlayer(team);
     
     addPlayerToTeam(currentTeam, newPlayer);
     playerCount++;

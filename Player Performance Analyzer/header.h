@@ -86,6 +86,8 @@ Team* searchTeamByName(Team* team, const char *teamName);
 PlayerData** getHeadByRole(Team *team, PlayerRole role);
 void updateAverageBattingStrikeRate(Team* team, PlayerData* player);
 Team* searchTeamById(Team* team, int teamId);
+bool containsId(PlayerData* head, int id);
+bool isUniquePlayerId(Team* team, int id);
 void displayPlayerTableHeader();
 char *getStringByRole(PlayerRole role);
 void displayPlayerDetails(PlayerData* player);

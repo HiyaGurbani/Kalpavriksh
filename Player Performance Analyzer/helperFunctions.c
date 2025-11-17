@@ -58,6 +58,37 @@ Team* searchTeamByName(Team* team, const char *teamName) {
     return NULL;
 }
 
+bool containsId(PlayerData* head, int id) {
+    while (head) {
+        if (head->id == id) {
+            return true;   
+        }
+        head = head->next;
+    }
+    return false; 
+}
+
+bool isUniquePlayerId(Team* teams, int id) {
+    for (int index = 0; index < teamCount; index++) {
+        
+        if (containsId(teams[index].batsmanHead, id))
+        { 
+            return false;
+        }
+        if (containsId(teams[index].bowlerHead, id))
+        {
+            return false;
+        }
+        if (containsId(teams[index].allRounderHead, id))
+        {
+            return false;
+        }
+    }
+
+    return true; 
+}
+
+
 PlayerData** getHeadByRole(Team *team, PlayerRole role) {
     if (role == BATSMAN)
     {
