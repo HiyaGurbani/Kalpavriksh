@@ -72,6 +72,11 @@ bool createPlayer(Team* team, Player player) {
     newPlayer->id = player.id;
     strcpy(newPlayer->name, player.name);
     newPlayer->role = getRoleByString(player.role);
+    if (!newPlayer->role)
+    {
+        return false;
+    }
+
     newPlayer->totalRuns = player.totalRuns;
     newPlayer->battingAverage = player.battingAverage;
     newPlayer->strikeRate = player.strikeRate;
@@ -127,7 +132,7 @@ PlayerData* createNewPlayer(Team* team) {
 
     int choice = 0;
     printf("Role (1-Batsman, 2-Bowler, 3-All-rounder): ");
-    getValidInteger(&choice);
+    getValidChoice(&choice);
     player->role = (PlayerRole)choice;
 
     printf("Total Runs: ");

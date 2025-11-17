@@ -16,6 +16,34 @@ void getValidFloat(float* value) {
     }
 }
 
+void getValidTeamId(int *value) {
+    while(true) 
+    {
+        getValidInteger(value);
+
+        if (*value < MIN_TEAM_COUNT || *value > teamCount)
+        {
+            printf("Invalid Input! Enter Team Id in range %d-%d: ", MIN_TEAM_COUNT, teamCount);
+            continue;
+        }
+        break;
+    }
+}
+
+void getValidChoice(int *value) {
+    while(true) 
+    {
+        getValidInteger(value);
+
+        if (*value == BATSMAN || *value == BOWLER || *value == ALL_ROUNDER)
+        {
+            break;
+        }
+
+        printf("Invalid Input! Enter Choice among %d, %d, %d: ", BATSMAN, BOWLER, ALL_ROUNDER);
+    }
+}
+
 PlayerRole getRoleByString(const char* role) {
     if (strcmp(role, STR_ALL_ROUNDER) == 0)
     {
@@ -29,6 +57,8 @@ PlayerRole getRoleByString(const char* role) {
     {
         return BATSMAN;
     }
+
+    return INVALID_ROLE;
 }
 
 void calculatePerformanceIndex(PlayerData* player) {

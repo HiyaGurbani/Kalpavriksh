@@ -9,6 +9,7 @@
 
 #define NAME_SIZE 100
 #define TEAM_NAME_SIZE 100
+#define MIN_TEAM_COUNT 1
 #define MAX_PLAYERS_IN_TEAM 50
 #define STR_BOWLER "Bowler"
 #define STR_BATSMAN "Batsman"
@@ -22,7 +23,8 @@
 typedef enum {
     BATSMAN = 1,
     BOWLER = 2,
-    ALL_ROUNDER = 3
+    ALL_ROUNDER = 3,
+    INVALID_ROLE = -1
 } PlayerRole;
 
 typedef struct PlayerData {
@@ -57,8 +59,8 @@ typedef struct HeapNode {
 
 //Command Handlers
 void displayMenu();
-void handleAddPlayer(Team* team, int teamId);
-void handleTopKPlayers(Team* team, int teamId);
+void handleAddPlayer(Team* team);
+void handleTopKPlayers(Team* team);
 void handleChoice(Team* team);
 
 //Core Functions
@@ -67,11 +69,11 @@ Team* initialiseTeams();
 void addPlayerToTeam(Team* team, PlayerData* newPlayer);
 bool createPlayer(Team* team, Player player);
 bool initialisePlayers(Team* team);
-PlayerData* createNewPlayer();
+PlayerData* createNewPlayer(Team* team);
 bool addNewPlayerToTeam(Team* team, int teamId);
 bool displayTeamData(Team* team, int teamId);
 bool displaySortedTeams(Team* team);
-bool getTopKPlayers(Team* team, int teamId, PlayerRole role, int k);
+bool getTopKPlayers(Team* team, int teamId, PlayerRole role, int topCount);
 void displaySortedPlayers(Team* team, PlayerRole role);
 void displaySortedPlayersOfRole(Team* team, PlayerRole role);
 void freePlayers(PlayerData* head);
@@ -80,6 +82,8 @@ void freeAllTeams(Team* team);
 //Helper Functions
 void getValidInteger(int* value);
 void getValidFloat(float* value);
+void getValidTeamId(int *value);
+void getValidChoice(int *value);
 PlayerRole getRoleByString(const char* role);
 void calculatePerformanceIndex(PlayerData* player);
 Team* searchTeamByName(Team* team, const char *teamName);

@@ -14,9 +14,10 @@ void displayMenu() {
     printf("=========================================================================================\n");
 }
 
-void handleAddPlayer(Team* team, int teamId) {
+void handleAddPlayer(Team* team) {
+    int teamId;
     printf("Enter Team ID to add player: ");
-    getValidInteger(&teamId);
+    getValidTeamId(&teamId);
 
     if (addNewPlayerToTeam(team, teamId))
     {
@@ -28,13 +29,14 @@ void handleAddPlayer(Team* team, int teamId) {
     }
 }
 
-void handleTopKPlayers(Team* team, int teamId) {
+void handleTopKPlayers(Team* team) {
+    int teamId;
     printf("Enter Team ID: ");
-    getValidInteger(&teamId);
+    getValidTeamId(&teamId);
 
     int choice;
     printf("Enter Role (1-Batsman, 2-Bowler, 3-All-Rounder): ");
-    getValidInteger(&choice);
+    getValidChoice(&choice);
 
     PlayerRole role = (PlayerRole)choice;
 
@@ -53,22 +55,24 @@ void handleChoice(Team* team) {
     printf("\nEnter your choice: ");
     getValidInteger(&choice);
 
-    int teamId;
     switch(choice) 
     {
         case 1: 
-            handleAddPlayer(team, teamId);
+            handleAddPlayer(team);
             break;
 
         case 2:
+        {
+            int teamId;
             printf("Enter Team ID: ");
-            getValidInteger(&teamId);
+            getValidTeamId(&teamId);
 
             if (!displayTeamData(team, teamId))
             {
                 printf("Team Not Found.\n");
             }
             break;
+        }
 
         case 3:
             printf("Teams Sorted by Average Batting Strike Rate");
@@ -79,12 +83,12 @@ void handleChoice(Team* team) {
             break;
             
         case 4:
-            handleTopKPlayers(team, teamId);
+            handleTopKPlayers(team);
             break;
         
         case 5:
             printf("Enter Role (1-Batsman, 2-Bowler, 3-All-Rounder): ");
-            getValidInteger(&choice);
+            getValidChoice(&choice);
 
             PlayerRole role = (PlayerRole)choice;
             displaySortedPlayersOfRole(team, role);
