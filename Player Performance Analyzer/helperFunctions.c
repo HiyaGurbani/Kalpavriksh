@@ -1,7 +1,7 @@
 #include "header.h"
 
-void getValidInteger(int* value) {
-    while(scanf("%d", value) != 1)
+void getValidInteger(unsigned int* value) {
+    while (scanf("%u", value) != 1)
     {
         printf("Invalid Character! Enter Again: ");
         while (getchar() != '\n');
@@ -9,15 +9,15 @@ void getValidInteger(int* value) {
 }
 
 void getValidFloat(float* value) {
-    while(scanf("%f", value) != 1)
+    while (scanf("%f", value) != 1)
     {
         printf("Invalid Character! Enter Again: ");
         while (getchar() != '\n');
     }
 }
 
-void getValidTeamId(int *value) {
-    while(true) 
+void getValidTeamId(unsigned int *value) {
+    while (true) 
     {
         getValidInteger(value);
 
@@ -30,8 +30,8 @@ void getValidTeamId(int *value) {
     }
 }
 
-void getValidRoleId(int *value) {
-    while(true) 
+void getValidRoleId(unsigned int *value) {
+    while (true) 
     {
         getValidInteger(value);
 
@@ -41,6 +41,64 @@ void getValidRoleId(int *value) {
         }
 
         printf("Invalid Input! Enter Choice among %d, %d, %d: ", BATSMAN, BOWLER, ALL_ROUNDER);
+    }
+}
+
+bool isUniquePlayerId(Team* team, unsigned int id) {
+    for (int index = 0; index < teamCount; index++) {
+        
+        if (containsId(team[index].batsmanHead, id))
+        { 
+            return false;
+        }
+        if (containsId(team[index].bowlerHead, id))
+        {
+            return false;
+        }
+        if (containsId(team[index].allRounderHead, id))
+        {
+            return false;
+        }
+    }
+
+    return true; 
+}
+
+void getValidPlayerId(Team* team, unsigned int *value) {
+    while (true) 
+    {
+        getValidInteger(value);
+
+        if (*value < MIN_PLAYER_ID || *value > MAX_PLAYER_ID)
+        {
+            printf("Invalid Input! Enter Player Id in range %d-%d: ", MIN_PLAYER_ID, MAX_PLAYER_ID);
+            continue;
+        }
+
+        if (!isUniquePlayerId(team, *value))
+        {
+            printf("Invalid ID! Player ID already exists. Enter again: ");
+            continue;
+        }
+        break;
+    }
+}
+
+void getValidPlayerName(char* name) {
+    while (getchar() != '\n');
+    
+    while (true)
+    {
+        fgets(name, NAME_SIZE, stdin);
+        name[strcspn(name, "\n")] = '\0';
+
+        if (name[0] == '\0')
+        {
+            printf("Invalid! Name cannot be empty. Enter again: ");
+            continue;
+        }
+
+        break;
     }
 }
 
@@ -61,20 +119,28 @@ PlayerRole getRoleByString(const char* role) {
     return INVALID_ROLE;
 }
 
-void calculatePerformanceIndex(PlayerData* player) {
-    if (player->role == BATSMAN)
+bool calculatePerformanceIndex(PlayerData* player) {
+    switch (player->role)
     {
-        player->performanceIndex = (player->battingAverage * player->strikeRate) / PERFORMANCE_DIVISION;
+        case BATSMAN:
+            player->performanceIndex = (player->battingAverage * player->strikeRate) / PERFORMANCE_DIVISION;
+            break;
+
+        case BOWLER:
+            player->performanceIndex = (player->wickets * WICKET_POINTS) + (ECONOMY_BASE - player->economyRate);
+            break;
+
+        case ALL_ROUNDER:
+            player->performanceIndex =
+                ((player->battingAverage * player->strikeRate) / PERFORMANCE_DIVISION) + (player->wickets * WICKET_POINTS);
+            break;
+
+        default:
+            player->performanceIndex = 0;
+            return false;
+            break;
     }
-    else if (player->role == BOWLER)
-    {
-        player->performanceIndex = (player->wickets * WICKET_POINTS) + (ECONOMY_BASE - player->economyRate);
-    }
-    else if (player->role == ALL_ROUNDER)
-    {
-        player->performanceIndex = 
-            ((player->battingAverage * player->strikeRate) / PERFORMANCE_DIVISION) + (player->wickets * WICKET_POINTS);
-    }
+    return true;
 }
 
 Team* searchTeamByName(Team* team, const char *teamName) {
@@ -88,7 +154,7 @@ Team* searchTeamByName(Team* team, const char *teamName) {
     return NULL;
 }
 
-bool containsId(PlayerData* head, int id) {
+bool containsId(PlayerData* head, unsigned int id) {
     while (head) {
         if (head->id == id) {
             return true;   
@@ -98,39 +164,20 @@ bool containsId(PlayerData* head, int id) {
     return false; 
 }
 
-bool isUniquePlayerId(Team* teams, int id) {
-    for (int index = 0; index < teamCount; index++) {
-        
-        if (containsId(teams[index].batsmanHead, id))
-        { 
-            return false;
-        }
-        if (containsId(teams[index].bowlerHead, id))
-        {
-            return false;
-        }
-        if (containsId(teams[index].allRounderHead, id))
-        {
-            return false;
-        }
-    }
-
-    return true; 
-}
-
-
 PlayerData** getHeadByRole(Team *team, PlayerRole role) {
-    if (role == BATSMAN)
+    switch (role)
     {
-        return &(team->batsmanHead);
-    }
-    else if (role == BOWLER)
-    {
-        return &(team->bowlerHead);
-    }
-    else if (role == ALL_ROUNDER)
-    {
-        return &(team->allRounderHead);
+        case BATSMAN:
+            return &(team->batsmanHead);
+
+        case BOWLER:
+            return &(team->bowlerHead);
+
+        case ALL_ROUNDER:
+            return &(team->allRounderHead);
+
+        default:
+            return NULL;
     }
 }
 
@@ -140,11 +187,11 @@ void updateAverageBattingStrikeRate(Team* team, PlayerData* player) {
     team->averageBattingStrikeRate = (totalBattingStrikeRate + player->strikeRate) / team->battingPlayerCount;
 }
 
-Team* searchTeamById(Team* team, int teamId) {
-    int low = 0, high = teamCount-1;
+Team* searchTeamById(Team* team, unsigned int teamId) {
+    int low = 0, high = teamCount - 1;
     while (low <= high)
     {
-        int mid = low + (high-low)/2;
+        int mid = low + (high - low) / 2;
         if (team[mid].id == teamId)
         {
             return &team[mid];
@@ -168,23 +215,25 @@ void displayPlayerTableHeader() {
 }
 
 char *getStringByRole(PlayerRole role) {
-    if (role == BATSMAN)
+    switch (role)
     {
-        return STR_BATSMAN;
-    }
-    else if (role == BOWLER)
-    {
-        return STR_BOWLER;
-    }
-    else if (role == ALL_ROUNDER)
-    {
-        return STR_ALL_ROUNDER;
+        case BATSMAN:
+            return STR_BATSMAN;
+
+        case BOWLER:
+            return STR_BOWLER;
+
+        case ALL_ROUNDER:
+            return STR_ALL_ROUNDER;
+
+        default:
+            return STR_EMPTY;
     }
 }
 
 void displayPlayerDetails(PlayerData* player) {
     char* role = getStringByRole(player->role);
-    printf("%-5d %-15s %-12s %-8d %-8.1f %-8.1f %-8d %-8.1f %-12.2f\n",
+    printf("%-5u %-15s %-12s %-8u %-8.1f %-8.1f %-8u %-8.1f %-12.2f\n",
     player->id,
     player->name,
     role,
@@ -278,7 +327,7 @@ void buildMaxHeap(HeapNode* heap, int heapSize) {
 HeapNode extractMax(HeapNode heap[], int *heapSize) {
     if (*heapSize <= 0) 
     {
-        return (HeapNode){NULL, -1};
+        return (HeapNode){NULL, 0};
     }
 
     HeapNode root = heap[HEAP_ROOT_INDEX];

@@ -1,6 +1,6 @@
 #include "header.h"
 
-void createTeam(Team* currentTeam, int teamId, const char* teamName) {
+void createTeam(Team* currentTeam, unsigned int teamId, const char* teamName) {
     currentTeam->id = teamId;
     strcpy(currentTeam->name, teamName);
     currentTeam->totalPlayers = 0;
@@ -72,17 +72,20 @@ bool createPlayer(Team* team, Player player) {
     newPlayer->id = player.id;
     strcpy(newPlayer->name, player.name);
     newPlayer->role = getRoleByString(player.role);
-    if (!newPlayer->role)
+    if (newPlayer->role == INVALID_ROLE)
     {
         return false;
     }
-
     newPlayer->totalRuns = player.totalRuns;
     newPlayer->battingAverage = player.battingAverage;
     newPlayer->strikeRate = player.strikeRate;
     newPlayer->wickets = player.wickets;
     newPlayer->economyRate = player.economyRate;
-    calculatePerformanceIndex(newPlayer);
+    if (!calculatePerformanceIndex(newPlayer))
+    {
+        printf("Error: Invalid role\n");
+        return false;
+    }
 
     Team *currentTeam = searchTeamByName(team, player.team);
     if (currentTeam != NULL)
@@ -96,7 +99,6 @@ bool createPlayer(Team* team, Player player) {
 
     return true;
 }
-
 
 bool initialisePlayers(Team* team) {
     for (int index = 0; index < playerCount; index++)
@@ -119,16 +121,10 @@ PlayerData* createNewPlayer(Team* team) {
     printf("\nEnter Player Details: \n");
 
     printf("Player ID: ");
-    getValidInteger(&player->id);
-    while(!isUniquePlayerId(team, player->id)) {
-        printf("Error: Id already exists! Enter again: ");
-        getValidInteger(&player->id);       
-    }
+    getValidPlayerId(team, &player->id);
 
-    while (getchar() != '\n');
     printf("Name: ");
-    fgets(player->name, NAME_SIZE, stdin);
-    player->name[strcspn(player->name, "\n")] = '\0';
+    getValidPlayerName(player->name);
 
     int roleId = 0;
     printf("Role (1-Batsman, 2-Bowler, 3-All-rounder): ");
@@ -150,12 +146,16 @@ PlayerData* createNewPlayer(Team* team) {
     printf("Economy Rate: ");
     getValidFloat(&player->economyRate);
 
-    calculatePerformanceIndex(player);
+    if (!calculatePerformanceIndex(player))
+    {
+        printf("Error: Invalid role\n");
+        return NULL;
+    }
 
     return player;
 }
 
-bool addNewPlayerToTeam(Team* team, int teamId) {
+bool addNewPlayerToTeam(Team* team, unsigned int teamId) {
     Team* currentTeam = searchTeamById(team, teamId);
     if (currentTeam == NULL)
     {
@@ -167,6 +167,10 @@ bool addNewPlayerToTeam(Team* team, int teamId) {
     }
 
     PlayerData* newPlayer = createNewPlayer(team);
+    if (newPlayer == NULL)
+    {
+        return false;
+    }
     
     addPlayerToTeam(currentTeam, newPlayer);
     playerCount++;
@@ -174,7 +178,7 @@ bool addNewPlayerToTeam(Team* team, int teamId) {
     return true;
 }
 
-bool displayTeamData(Team* team, int teamId) {
+bool displayTeamData(Team* team, unsigned int teamId) {
     Team* currentTeam = searchTeamById(team, teamId);
     if (currentTeam == NULL)
     {
@@ -200,7 +204,7 @@ bool displayTeamData(Team* team, int teamId) {
         }
     }
 
-    printf("\nTotal Players: %d\n", currentTeam->totalPlayers);
+    printf("\nTotal Players: %u\n", currentTeam->totalPlayers);
     printf("Average Batting Strike Rate: %.2f\n", currentTeam->averageBattingStrikeRate);
 
     return true;
@@ -226,13 +230,13 @@ bool displaySortedTeams(Team* team) {
 
     for (int index = 0; index < teamCount; index++)
     {
-        printf("%-10d %-20s %-12.2f %-10d\n", temp[index].id, temp[index].name, temp[index].averageBattingStrikeRate, temp[index].totalPlayers);
+        printf("%-10u %-20s %-12.2f %-10u\n", temp[index].id, temp[index].name, temp[index].averageBattingStrikeRate, temp[index].totalPlayers);
     }
 
     return true;
 }
 
-bool getTopKPlayers(Team* team, int teamId, PlayerRole role, int topCount) {
+bool getTopKPlayers(Team* team, unsigned int teamId, PlayerRole role, unsigned int topCount) {
     Team* currentTeam = searchTeamById(team, teamId);
     if (currentTeam == NULL) 
     {

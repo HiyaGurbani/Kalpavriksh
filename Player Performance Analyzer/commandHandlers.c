@@ -15,7 +15,7 @@ void displayMenu() {
 }
 
 void handleAddPlayer(Team* team) {
-    int teamId;
+    unsigned int teamId;
     printf("Enter Team ID to add player: ");
     getValidTeamId(&teamId);
 
@@ -30,17 +30,17 @@ void handleAddPlayer(Team* team) {
 }
 
 void handleTopKPlayers(Team* team) {
-    int teamId;
+    unsigned int teamId;
     printf("Enter Team ID: ");
     getValidTeamId(&teamId);
 
-    int roleId;
+    unsigned int roleId;
     printf("Enter Role (1-Batsman, 2-Bowler, 3-All-Rounder): ");
     getValidRoleId(&roleId);
 
     PlayerRole role = (PlayerRole)roleId;
 
-    int topCount;
+    unsigned int topCount;
     printf("Enter number of players: ");
     getValidInteger(&topCount);
 
@@ -51,7 +51,7 @@ void handleTopKPlayers(Team* team) {
 }
 
 void handleChoice(Team* team) {
-    int choice;
+    unsigned int choice;
     printf("\nEnter your choice: ");
     getValidInteger(&choice);
 
@@ -63,7 +63,7 @@ void handleChoice(Team* team) {
 
         case 2:
         {
-            int teamId;
+            unsigned int teamId;
             printf("Enter Team ID: ");
             getValidTeamId(&teamId);
 
@@ -88,7 +88,7 @@ void handleChoice(Team* team) {
         
         case 5:
         {
-            int roleId;
+            unsigned int roleId;
             printf("Enter Role (1-Batsman, 2-Bowler, 3-All-Rounder): ");
             getValidRoleId(&roleId);
 

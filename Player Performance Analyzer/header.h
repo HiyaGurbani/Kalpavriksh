@@ -7,13 +7,16 @@
 #include<stdbool.h>
 #include "Players_Data.h"
 
-#define NAME_SIZE 100
+#define NAME_SIZE 50
 #define TEAM_NAME_SIZE 100
 #define MIN_TEAM_COUNT 1
+#define MIN_PLAYER_ID 1
+#define MAX_PLAYER_ID 1000
 #define MAX_PLAYERS_IN_TEAM 50
 #define STR_BOWLER "Bowler"
 #define STR_BATSMAN "Batsman"
 #define STR_ALL_ROUNDER "All-rounder"
+#define STR_EMPTY ""
 #define PERFORMANCE_DIVISION 100
 #define WICKET_POINTS 2
 #define ECONOMY_BASE 100 
@@ -28,24 +31,24 @@ typedef enum {
 } PlayerRole;
 
 typedef struct PlayerData {
-    int id;
+    unsigned int id;
     char name[NAME_SIZE];
     char teamName[TEAM_NAME_SIZE]; 
     PlayerRole role;
-    int totalRuns;
+    unsigned int totalRuns;
     float battingAverage;
     float strikeRate;
-    int wickets;
+    unsigned int wickets;
     float economyRate;
     float performanceIndex;
     struct PlayerData* next;
 } PlayerData;
 
 typedef struct Team {
-    int id;
+    unsigned int id;
     char name[NAME_SIZE];
-    int totalPlayers;
-    int battingPlayerCount;
+    unsigned int totalPlayers;
+    unsigned int battingPlayerCount;
     float averageBattingStrikeRate;
     PlayerData* batsmanHead;
     PlayerData* bowlerHead;
@@ -54,7 +57,7 @@ typedef struct Team {
 
 typedef struct HeapNode {
     PlayerData* player;
-    int teamId;
+    unsigned int teamId;
 } HeapNode;
 
 //Command Handlers
@@ -64,34 +67,36 @@ void handleTopKPlayers(Team* team);
 void handleChoice(Team* team);
 
 //Core Functions
-void createTeam(Team* currentTeam, int teamId, const char* teamName);
+void createTeam(Team* currentTeam, unsigned int teamId, const char* teamName);
 Team* initialiseTeams();
 void addPlayerToTeam(Team* team, PlayerData* newPlayer);
 bool createPlayer(Team* team, Player player);
 bool initialisePlayers(Team* team);
 PlayerData* createNewPlayer(Team* team);
-bool addNewPlayerToTeam(Team* team, int teamId);
-bool displayTeamData(Team* team, int teamId);
+bool addNewPlayerToTeam(Team* team, unsigned int teamId);
+bool displayTeamData(Team* team, unsigned int teamId);
 bool displaySortedTeams(Team* team);
-bool getTopKPlayers(Team* team, int teamId, PlayerRole role, int topCount);
+bool getTopKPlayers(Team* team, unsigned int teamId, PlayerRole role, unsigned int topCount);
 void displaySortedPlayers(Team* team, PlayerRole role);
 void displaySortedPlayersOfRole(Team* team, PlayerRole role);
 void freePlayers(PlayerData* head);
 void freeAllTeams(Team* team);
 
 //Helper Functions
-void getValidInteger(int* value);
+void getValidInteger(unsigned int* value);
 void getValidFloat(float* value);
-void getValidTeamId(int *value);
-void getValidRoleId(int *value);
+void getValidTeamId(unsigned int *value);
+void getValidRoleId(unsigned int *value);
+bool isUniquePlayerId(Team* team, unsigned int id);
+void getValidPlayerId(Team* team, unsigned int *value);
+void getValidPlayerName(char* name);
 PlayerRole getRoleByString(const char* role);
-void calculatePerformanceIndex(PlayerData* player);
+bool calculatePerformanceIndex(PlayerData* player);
 Team* searchTeamByName(Team* team, const char *teamName);
 PlayerData** getHeadByRole(Team *team, PlayerRole role);
 void updateAverageBattingStrikeRate(Team* team, PlayerData* player);
-Team* searchTeamById(Team* team, int teamId);
-bool containsId(PlayerData* head, int id);
-bool isUniquePlayerId(Team* team, int id);
+Team* searchTeamById(Team* team, unsigned int teamId);
+bool containsId(PlayerData* head, unsigned int id);
 void displayPlayerTableHeader();
 char *getStringByRole(PlayerRole role);
 void displayPlayerDetails(PlayerData* player);
