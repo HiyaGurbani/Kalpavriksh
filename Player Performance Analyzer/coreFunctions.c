@@ -38,7 +38,7 @@ void addPlayerToTeam(Team* team, PlayerData* newPlayer) {
 
     else 
     {
-        if (newPlayer->performanceIndex > (*head)->performanceIndex)
+        if (newPlayer->performanceIndex >= (*head)->performanceIndex)
         {
             newPlayer->next = *head;
             *head = newPlayer;
@@ -46,7 +46,7 @@ void addPlayerToTeam(Team* team, PlayerData* newPlayer) {
         else
         {
             PlayerData* temp = *head;
-            while (temp->next != NULL && temp->next->performanceIndex > newPlayer->performanceIndex)
+            while (temp->next != NULL && temp->next->performanceIndex >= newPlayer->performanceIndex)
             {
                 temp = temp->next;
             }
@@ -74,6 +74,7 @@ bool createPlayer(Team* team, Player player) {
     newPlayer->role = getRoleByString(player.role);
     if (newPlayer->role == INVALID_ROLE)
     {
+        free(newPlayer);
         return false;
     }
     newPlayer->totalRuns = player.totalRuns;
@@ -84,18 +85,17 @@ bool createPlayer(Team* team, Player player) {
     if (!calculatePerformanceIndex(newPlayer))
     {
         printf("Error: Invalid role\n");
+        free(newPlayer);
         return false;
     }
 
     Team *currentTeam = searchTeamByName(team, player.team);
-    if (currentTeam != NULL)
+    if (!currentTeam)
     {
-        addPlayerToTeam(currentTeam, newPlayer);
+        free(newPlayer);
+        return false;    
     }
-    else
-    {
-        return false;
-    }
+    addPlayerToTeam(currentTeam, newPlayer);
 
     return true;
 }
@@ -126,7 +126,7 @@ PlayerData* createNewPlayer(Team* team) {
     printf("Name: ");
     getValidPlayerName(player->name);
 
-    int roleId = 0;
+    unsigned int roleId = 0;
     printf("Role (1-Batsman, 2-Bowler, 3-All-rounder): ");
     getValidRoleId(&roleId);
     player->role = (PlayerRole)roleId;
@@ -148,6 +148,7 @@ PlayerData* createNewPlayer(Team* team) {
 
     if (!calculatePerformanceIndex(player))
     {
+        free(player);
         printf("Error: Invalid role\n");
         return NULL;
     }
@@ -216,7 +217,8 @@ bool displaySortedTeams(Team* team) {
         return false;
     }
 
-    Team temp[teamCount];
+    Team* temp = malloc(teamCount * sizeof(Team));
+
     for (int index = 0; index < teamCount; index++)
     {
         temp[index] = team[index];
@@ -233,6 +235,7 @@ bool displaySortedTeams(Team* team) {
         printf("%-10u %-20s %-12.2f %-10u\n", temp[index].id, temp[index].name, temp[index].averageBattingStrikeRate, temp[index].totalPlayers);
     }
 
+    free(team);
     return true;
 }
 
@@ -258,11 +261,14 @@ bool getTopKPlayers(Team* team, unsigned int teamId, PlayerRole role, unsigned i
     return true;
 }
 
-void displaySortedPlayers(Team* team, PlayerRole role) {
+bool displaySortedPlayers(Team* team, PlayerRole role) {
     int heapSize = 0;
     HeapNode heap[teamCount];
 
-    initialiseHeap(team, role, heap, &heapSize);
+    if (!initialiseHeap(team, role, heap, &heapSize))
+    {
+        return false;
+    }
 
     buildMaxHeap(heap, heapSize);
 
@@ -284,17 +290,21 @@ void displaySortedPlayers(Team* team, PlayerRole role) {
             maxHeapify(heap, heapSize, HEAP_ROOT_INDEX);
         }
     }
+
+    return true;
 }
 
-void displaySortedPlayersOfRole(Team* team, PlayerRole role) {
+bool displaySortedPlayersOfRole(Team* team, PlayerRole role) {
     char* player = getStringByRole(role);
     printf("%s of all teams: \n", player);
 
     displayPlayerTableHeader();
 
-    displaySortedPlayers(team, role);
+    if (!displaySortedPlayers(team, role))
+    {
+        return false;
+    }
 }
-
 
 void freePlayers(PlayerData* head) {
     while (head != NULL)

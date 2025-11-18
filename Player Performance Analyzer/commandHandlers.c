@@ -1,4 +1,3 @@
-#include<stdio.h>
 #include "header.h"
 
 void displayMenu() {
@@ -93,7 +92,10 @@ void handleChoice(Team* team) {
             getValidRoleId(&roleId);
 
             PlayerRole role = (PlayerRole)roleId;
-            displaySortedPlayersOfRole(team, role);
+            if (!displaySortedPlayersOfRole(team, role))
+            {
+                printf("No players with this role exist in teams.\n");
+            }
             break;
         }
         

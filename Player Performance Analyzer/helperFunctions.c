@@ -86,7 +86,7 @@ void getValidPlayerId(Team* team, unsigned int *value) {
 
 void getValidPlayerName(char* name) {
     while (getchar() != '\n');
-    
+
     while (true)
     {
         fgets(name, NAME_SIZE, stdin);
@@ -138,7 +138,6 @@ bool calculatePerformanceIndex(PlayerData* player) {
         default:
             player->performanceIndex = 0;
             return false;
-            break;
     }
     return true;
 }
@@ -279,16 +278,28 @@ void quickSort(Team* team, int low, int high) {
     }
 }
 
-void initialiseHeap(Team* team, PlayerRole role, HeapNode* heap, int* heapSize) {
+bool initialiseHeap(Team* team, PlayerRole role, HeapNode* heap, int* heapSize) {
     for (int index = 0; index < teamCount; index++)
     {
         PlayerData** head = getHeadByRole(&team[index], role);
+        if (!head)
+        {
+            continue;
+        }
+
         if (*head != NULL) {
             heap[*heapSize].player = *head;
             heap[*heapSize].teamId = team[index].id; 
             (*heapSize)++;
         }
     }
+
+    if (*heapSize == 0)
+    {
+        return false;
+    }
+
+    return true;
 }
 
 void maxHeapify(HeapNode* heap, int size, int index) {
@@ -327,7 +338,7 @@ void buildMaxHeap(HeapNode* heap, int heapSize) {
 HeapNode extractMax(HeapNode heap[], int *heapSize) {
     if (*heapSize <= 0) 
     {
-        return (HeapNode){NULL, 0};
+        return (HeapNode){NULL, INVALID_TEAM_ID};
     }
 
     HeapNode root = heap[HEAP_ROOT_INDEX];

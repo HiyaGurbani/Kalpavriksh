@@ -7,12 +7,13 @@
 #include<stdbool.h>
 #include "Players_Data.h"
 
-#define NAME_SIZE 50
-#define TEAM_NAME_SIZE 100
+#define NAME_SIZE 51
+#define TEAM_NAME_SIZE 51
 #define MIN_TEAM_COUNT 1
 #define MIN_PLAYER_ID 1
 #define MAX_PLAYER_ID 1000
 #define MAX_PLAYERS_IN_TEAM 50
+#define INVALID_TEAM_ID 0
 #define STR_BOWLER "Bowler"
 #define STR_BATSMAN "Batsman"
 #define STR_ALL_ROUNDER "All-rounder"
@@ -77,8 +78,8 @@ bool addNewPlayerToTeam(Team* team, unsigned int teamId);
 bool displayTeamData(Team* team, unsigned int teamId);
 bool displaySortedTeams(Team* team);
 bool getTopKPlayers(Team* team, unsigned int teamId, PlayerRole role, unsigned int topCount);
-void displaySortedPlayers(Team* team, PlayerRole role);
-void displaySortedPlayersOfRole(Team* team, PlayerRole role);
+bool displaySortedPlayers(Team* team, PlayerRole role);
+bool displaySortedPlayersOfRole(Team* team, PlayerRole role);
 void freePlayers(PlayerData* head);
 void freeAllTeams(Team* team);
 
@@ -103,7 +104,7 @@ void displayPlayerDetails(PlayerData* player);
 void swap(Team* team1, Team* team2);
 int partitionIndex(Team* team, int low, int high);
 void quickSort(Team* team, int low, int high);
-void initialiseHeap(Team* team, PlayerRole role, HeapNode* heap, int* heapSize);
+bool initialiseHeap(Team* team, PlayerRole role, HeapNode* heap, int* heapSize);
 void maxHeapify(HeapNode* heap, int size, int index);
 void buildMaxHeap(HeapNode* heap, int heapSize);
 HeapNode extractMax(HeapNode heap[], int *heapSize);
