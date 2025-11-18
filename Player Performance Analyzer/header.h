@@ -83,7 +83,7 @@ void freeAllTeams(Team* team);
 void getValidInteger(int* value);
 void getValidFloat(float* value);
 void getValidTeamId(int *value);
-void getValidChoice(int *value);
+void getValidRoleId(int *value);
 PlayerRole getRoleByString(const char* role);
 void calculatePerformanceIndex(PlayerData* player);
 Team* searchTeamByName(Team* team, const char *teamName);

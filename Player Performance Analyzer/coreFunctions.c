@@ -130,10 +130,10 @@ PlayerData* createNewPlayer(Team* team) {
     fgets(player->name, NAME_SIZE, stdin);
     player->name[strcspn(player->name, "\n")] = '\0';
 
-    int choice = 0;
+    int roleId = 0;
     printf("Role (1-Batsman, 2-Bowler, 3-All-rounder): ");
-    getValidChoice(&choice);
-    player->role = (PlayerRole)choice;
+    getValidRoleId(&roleId);
+    player->role = (PlayerRole)roleId;
 
     printf("Total Runs: ");
     getValidInteger(&player->totalRuns);

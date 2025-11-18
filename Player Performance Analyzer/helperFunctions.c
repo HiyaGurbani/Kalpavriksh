@@ -30,7 +30,7 @@ void getValidTeamId(int *value) {
     }
 }
 
-void getValidChoice(int *value) {
+void getValidRoleId(int *value) {
     while(true) 
     {
         getValidInteger(value);

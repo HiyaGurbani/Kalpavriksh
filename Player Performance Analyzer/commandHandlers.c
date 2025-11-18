@@ -34,11 +34,11 @@ void handleTopKPlayers(Team* team) {
     printf("Enter Team ID: ");
     getValidTeamId(&teamId);
 
-    int choice;
+    int roleId;
     printf("Enter Role (1-Batsman, 2-Bowler, 3-All-Rounder): ");
-    getValidChoice(&choice);
+    getValidRoleId(&roleId);
 
-    PlayerRole role = (PlayerRole)choice;
+    PlayerRole role = (PlayerRole)roleId;
 
     int topCount;
     printf("Enter number of players: ");
@@ -87,12 +87,15 @@ void handleChoice(Team* team) {
             break;
         
         case 5:
+        {
+            int roleId;
             printf("Enter Role (1-Batsman, 2-Bowler, 3-All-Rounder): ");
-            getValidChoice(&choice);
+            getValidRoleId(&roleId);
 
-            PlayerRole role = (PlayerRole)choice;
+            PlayerRole role = (PlayerRole)roleId;
             displaySortedPlayersOfRole(team, role);
             break;
+        }
         
         case 6:
             freeAllTeams(team);
