@@ -235,7 +235,7 @@ bool displaySortedTeams(Team* team) {
         printf("%-10u %-20s %-12.2f %-10u\n", temp[index].id, temp[index].name, temp[index].averageBattingStrikeRate, temp[index].totalPlayers);
     }
 
-    free(team);
+    free(temp);
     return true;
 }
 
@@ -304,6 +304,7 @@ bool displaySortedPlayersOfRole(Team* team, PlayerRole role) {
     {
         return false;
     }
+    return true;
 }
 
 void freePlayers(PlayerData* head) {
