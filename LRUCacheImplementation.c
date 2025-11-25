@@ -11,6 +11,7 @@
 #define CMD_CREATE_CACHE "createCache "
 #define CMD_PUT "put "
 #define CMD_GET "get "
+#define CMD_EXIT "exit"
 
 typedef struct QueueNode {
     int key;
@@ -32,15 +33,23 @@ typedef struct HashNode {
     struct HashNode* next;
 } HashNode;
 
-int getCapacity(char *input) {
-    int capacity = 0;
+int getDigit (char** input) {
+    int digit = 0;
+    char *currInput = *input;
     
-    while(*input >= '0' && *input <= '9')
+    while(*currInput >= '0' && *currInput <= '9')
     {
-        int newDigit = *input - '0';
-        capacity = capacity * 10 + newDigit;
-        input++;
+        int newDigit = *currInput - '0';
+        digit = digit * 10 + newDigit;
+        currInput++;
     }
+
+    *input = currInput;
+    return digit;
+}
+
+int getCapacity(char *input) {
+    int capacity = getDigit(&input);
 
     if (capacity < MIN_CACHE_CAPACITY || capacity > MAX_CACHE_CAPACITY)
     {
@@ -51,14 +60,11 @@ int getCapacity(char *input) {
 }
 
 bool getKeyValue(char* input, int *key, char* value) {
-    bool keyExists = false, valueExists = false;
+    *key = getDigit(&input);
 
-    while(*input >= '0' && *input <= '9')
+    if (*key == 0)
     {
-        keyExists = true;
-        int newDigit = *input - '0';
-        *key = *key * 10 + newDigit;
-        input++;
+        return false;
     }
 
     while (*input == ' ')
@@ -71,37 +77,13 @@ bool getKeyValue(char* input, int *key, char* value) {
         return false;
     }
 
-    char *string = value;
-    while(*input != ' ' && *input != '\0')
-    {
-        valueExists = true;
-        *string = *input;
-        string++;
-        input++;
-    }
-
-    *string = '\0';
-
-    // printf("Key: %d Value: %s\n", *key, value);
-    if (!keyExists || !valueExists)
-    {
-        return false;
-    }
+    strcpy(value, input);
 
     return true;
 }
 
 int getKey(char* input) {
-    int key = 0;
-    
-    while(*input >= '0' && *input <= '9')
-    {
-        int newDigit = *input - '0';
-        key = key * 10 + newDigit;
-        input++;
-    }
-
-    return key;
+    return getDigit(&input);
 }
 
 void initialiseCache(int capacity, HashNode*** hashMap, Queue** queue) {
@@ -186,19 +168,29 @@ void insertAtFront(Queue* queue, QueueNode* node) {
     queue->size++;
 }
 
-bool updateIfKeyExists(HashNode** hashMap, Queue* queue, int key, char* value) {
+QueueNode* findAndMoveToFront(HashNode** hashMap, Queue* queue, int key) {
     int index = hash(key);
     HashNode* temp = hashMap[index];
     while(temp) 
     {
         if (temp->key == key)
         {
-            strcpy(temp->queueNode->value, value);
             detachNode(queue, temp->queueNode);
             insertAtFront(queue, temp->queueNode);
-            return true;
+            return temp->queueNode;
         }
         temp = temp->next;
+    }
+        
+    return NULL;
+}
+
+bool updateIfKeyExists(HashNode** hashMap, Queue* queue, int key, char* value) {
+    QueueNode* targetNode = findAndMoveToFront(hashMap, queue, key);
+    if (targetNode) 
+    {
+        strcpy(targetNode->value, value);
+        return true;
     }
         
     return false;
@@ -325,25 +317,42 @@ void handlePut(HashNode** hashMap, Queue* queue, int key, char* value) {
 }
 
 char* handleGet(HashNode** hashMap, Queue* queue, int key) {
-    int index = hash(key);
-
-    HashNode* temp = hashMap[index];
-    while (temp)
+    QueueNode* targetNode = findAndMoveToFront(hashMap, queue, key);
+    if (targetNode)
     {
-        if (temp->key == key)
-        {
-            detachNode(queue, temp->queueNode);
-            insertAtFront(queue, temp->queueNode);
-            return temp->queueNode->value;
-        }
+        return targetNode->value;
     }
-
+    
     return NULL;
 }
 
+void freeQueue(Queue* queue) {
+    while (queue->front) {
+        QueueNode* node = queue->front;
+        queue->front = node->next;
+        free(node);
+    }
+
+    free(queue);
+}
+
+void freeHashMap(HashNode** hashMap) {
+    for (int index = 0; index < HASH_SIZE; index++)
+    {
+        HashNode* temp = hashMap[index];
+        while (temp)
+        {
+            HashNode* toDelete = temp;
+            temp = temp->next;
+            free(toDelete);
+        }
+    }
+    free(hashMap);
+}
+
 int main() {
-    HashNode** hashMap;
-    Queue* queue;
+    HashNode** hashMap = NULL;
+    Queue* queue = NULL;
 
     while(true)
     {
@@ -366,6 +375,12 @@ int main() {
 
         else if (strncmp(input, CMD_PUT, strlen(CMD_PUT)) == 0)
         {
+            if (!hashMap || !queue)
+            {
+                printf("Cache not initialised.\n");
+                continue;
+            }
+
             int key = 0;
             char value[VALUE_SIZE] = "";
             if (!getKeyValue(input + strlen(CMD_PUT), &key, value))
@@ -380,6 +395,12 @@ int main() {
 
         else if (strncmp(input, CMD_GET, strlen(CMD_GET)) == 0)
         {
+            if (!hashMap || !queue)
+            {
+                printf("Cache not initialised.\n");
+                continue;
+            }
+
             int key = getKey(input + strlen(CMD_GET));
             char* value = handleGet(hashMap, queue, key);
             if (value)
@@ -388,8 +409,15 @@ int main() {
             }
             else
             {
-                printf("Key not found.\n");
+                printf("NULL\n");
             }
+        }
+
+        else if (strcmp(input, CMD_EXIT) == 0)
+        {
+            freeQueue(queue);
+            freeHashMap(hashMap);
+            return 0;
         }
 
         else
