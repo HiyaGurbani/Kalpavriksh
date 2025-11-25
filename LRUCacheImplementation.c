@@ -5,7 +5,7 @@
 
 #define MIN_CACHE_CAPACITY 1
 #define MAX_CACHE_CAPACITY 1000
-#define HASH_SIZE 100
+// #define HASH_SIZE 100
 #define INPUT_SIZE 100
 #define VALUE_SIZE 100
 #define CMD_CREATE_CACHE "createCache "
@@ -86,32 +86,45 @@ int getKey(char* input) {
     return getDigit(&input);
 }
 
-void initialiseCache(int capacity, HashNode*** hashMap, Queue** queue) {
-    HashNode** map = malloc(HASH_SIZE * sizeof(HashNode*));
-    for (int index = 0; index < HASH_SIZE; index++)
+void initialiseHashMap(HashNode*** hashMap, int capacity) {
+    HashNode** map = malloc(capacity * sizeof(HashNode*));
+    if (!map)
+    {
+        printf("Memory Allocation Failed!\n");
+        return;
+    }
+
+    for (int index = 0; index < capacity; index++)
     {
         map[index] = NULL;
     }
     *hashMap = map;
+}
 
-    Queue* q = malloc(sizeof(Queue));
-    if (!q)
+void initialiseQueue(Queue** queue, int capacity) {
+    Queue* newQueue = malloc(sizeof(Queue));
+    if (!newQueue)
     {
         printf("Memory Allocation Failed!");
         exit(1);
     }
-    q->front = q->rear = NULL;
-    q->size = 0;
-    q->capacity = capacity;
+    newQueue->front = newQueue->rear = NULL;
+    newQueue->size = 0;
+    newQueue->capacity = capacity;
 
-    *queue = q;
+    *queue = newQueue;
 }
 
-int hash(int key) {
-    int index = key % HASH_SIZE;
+void initialiseCache(HashNode*** hashMap, Queue** queue, int capacity) {
+    initialiseHashMap(hashMap, capacity);
+    initialiseQueue(queue, capacity);
+}
+
+int hash(int key, int capacity) {
+    int index = key % capacity;
     if (index < 0)
     {
-        return (index + HASH_SIZE);
+        return (index + capacity);
     } 
     else
     {
@@ -119,34 +132,31 @@ int hash(int key) {
     }
 }
 
-void detachNode(Queue* queue, QueueNode* node) {
-    if (!node)
+void removeNodeFromQueue(Queue* queue, QueueNode* node) {
+    if (!queue || !node)
     {
         return;
     }
 
-    if (node->prev == NULL && node->next == NULL)
+    if (node->prev) 
     {
-        queue->front = queue->rear = NULL;
-    }
-    else if (node->prev == NULL)
-    {
-        queue->front = node->next;
-        queue->front->prev = NULL;
-    }
-    else if (node->next == NULL)
-    {
-        queue->rear = node->prev;
-        queue->rear->next = NULL;
+        node->prev->next = node->next;
     }
     else
     {
-        node->prev->next = node->next;
-        node->next->prev = node->prev;
+        queue->front = node->next;
     }
 
-    node->prev = NULL;
-    node->next = NULL;
+    if (node->next)
+    {
+        node->next->prev = node->prev;
+    }
+    else
+    {
+        queue->rear = node->prev;
+    }
+
+    node->prev = node->next = NULL;
     queue->size--;
 }
 
@@ -168,36 +178,41 @@ void insertAtFront(Queue* queue, QueueNode* node) {
     queue->size++;
 }
 
-QueueNode* findAndMoveToFront(HashNode** hashMap, Queue* queue, int key) {
-    int index = hash(key);
+QueueNode* findNode(HashNode** hashMap, int key, int capacity) {
+    int index = hash(key, capacity);
     HashNode* temp = hashMap[index];
-    while(temp) 
-    {
-        if (temp->key == key)
-        {
-            detachNode(queue, temp->queueNode);
-            insertAtFront(queue, temp->queueNode);
-            return temp->queueNode;
+    while (temp) {
+        if (temp->key == key) {
+            return temp->queueNode;  
         }
         temp = temp->next;
     }
-        
     return NULL;
 }
 
-bool updateIfKeyExists(HashNode** hashMap, Queue* queue, int key, char* value) {
-    QueueNode* targetNode = findAndMoveToFront(hashMap, queue, key);
-    if (targetNode) 
+void moveToFront(Queue* queue, QueueNode* node) {
+    if (!node || queue->front == node) 
     {
-        strcpy(targetNode->value, value);
+        return; 
+    }
+    detachNode(queue, node);
+    insertAtFront(queue, node);
+}
+
+bool updateIfKeyExists(HashNode** hashMap, Queue* queue, int key, char* value) {
+    QueueNode* node = findNode(hashMap, key, queue->capacity);
+
+    if (node) {
+        strcpy(node->value, value);
+        moveToFront(queue, node);
         return true;
     }
-        
+
     return false;
 }
 
-void deleteFromHashMap(HashNode** hashMap, int key) {
-    int index = hash(key);
+void deleteFromHashMap(HashNode** hashMap, int key, int capacity) {
+    int index = hash(key, capacity);
     HashNode* curr = hashMap[index];
     HashNode* prev = NULL;
 
@@ -214,6 +229,7 @@ void deleteFromHashMap(HashNode** hashMap, int key) {
                 prev->next = curr->next;
             }
             free(curr);
+            curr = NULL;
             break;
         }
         prev = curr;
@@ -242,6 +258,7 @@ void deleteFromQueue(Queue* queue) {
     }
 
     free(toDelete);
+    toDelete = NULL;
     queue->size--;
 }
 
@@ -253,7 +270,7 @@ void deleteLRU(HashNode** hashMap, Queue* queue) {
 
     int key = queue->rear->key;
 
-    deleteFromHashMap(hashMap, key);
+    deleteFromHashMap(hashMap, key, queue->capacity);
 
     deleteFromQueue(queue);
 }
@@ -288,8 +305,8 @@ HashNode* createHashNode(int key, QueueNode* queueNode) {
     return newHashNode;
 }
 
-void insertIntoHashMap(HashNode** hashMap, HashNode* node) {
-    int index = hash(node->key);
+void insertIntoHashMap(HashNode** hashMap, HashNode* node, int capacity) {
+    int index = hash(node->key, capacity);
     node->next = hashMap[index];
     hashMap[index] = node;
 }
@@ -299,7 +316,7 @@ void insertNewKey(HashNode** hashMap, Queue* queue, int key, char* value) {
     HashNode* newHashNode = createHashNode(key, newQueueNode);
 
     insertAtFront(queue, newQueueNode);
-    insertIntoHashMap(hashMap, newHashNode);
+    insertIntoHashMap(hashMap, newHashNode, queue->capacity);
 }
 
 void handlePut(HashNode** hashMap, Queue* queue, int key, char* value) {
@@ -317,27 +334,30 @@ void handlePut(HashNode** hashMap, Queue* queue, int key, char* value) {
 }
 
 char* handleGet(HashNode** hashMap, Queue* queue, int key) {
-    QueueNode* targetNode = findAndMoveToFront(hashMap, queue, key);
-    if (targetNode)
-    {
-        return targetNode->value;
-    }
+    QueueNode* node = findNode(hashMap, key, queue->capacity);
     
+    if (node) {
+        moveToFront(queue, node);
+        return node->value;
+    }
+
     return NULL;
 }
 
 void freeQueue(Queue* queue) {
     while (queue->front) {
-        QueueNode* node = queue->front;
-        queue->front = node->next;
-        free(node);
+        QueueNode* toDelete = queue->front;
+        queue->front = toDelete->next;
+        free(toDelete);
+        toDelete = NULL;
     }
 
     free(queue);
+    queue = NULL;
 }
 
-void freeHashMap(HashNode** hashMap) {
-    for (int index = 0; index < HASH_SIZE; index++)
+void freeHashMap(HashNode** hashMap, int capacity) {
+    for (int index = 0; index < capacity; index++)
     {
         HashNode* temp = hashMap[index];
         while (temp)
@@ -345,9 +365,21 @@ void freeHashMap(HashNode** hashMap) {
             HashNode* toDelete = temp;
             temp = temp->next;
             free(toDelete);
+            toDelete = NULL;
         }
     }
     free(hashMap);
+    hashMap = NULL;
+}
+
+void freeCache(HashNode** hashMap, Queue* queue) {
+    if (!queue || !hashMap)
+    {
+        return;
+    }
+
+    freeHashMap(hashMap, queue->capacity);
+    freeQueue(queue);  
 }
 
 int main() {
@@ -369,7 +401,7 @@ int main() {
                 printf("Invalid Command Syntax.\n");
             }
 
-            initialiseCache(capacity, &hashMap, &queue);
+            initialiseCache(&hashMap, &queue, capacity);
             printf("Cache is now initialised.\n");
         }
 
@@ -415,8 +447,7 @@ int main() {
 
         else if (strcmp(input, CMD_EXIT) == 0)
         {
-            freeQueue(queue);
-            freeHashMap(hashMap);
+            freeCache(hashMap, queue);
             return 0;
         }
 
