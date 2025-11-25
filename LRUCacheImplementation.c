@@ -2,12 +2,14 @@
 #include <stdlib.h>
 #include <string.h>
 #include <stdbool.h>
+#include <ctype.h>
+#include <math.h>
 
 #define MIN_CACHE_CAPACITY 1
 #define MAX_CACHE_CAPACITY 1000
-// #define HASH_SIZE 100
 #define INPUT_SIZE 100
 #define VALUE_SIZE 100
+#define SMALLEST_PRIME_NUMBER 2
 #define CMD_CREATE_CACHE "createCache "
 #define CMD_PUT "put "
 #define CMD_GET "get "
@@ -25,6 +27,7 @@ typedef struct Queue {
     QueueNode* rear;
     int size;
     int capacity;
+    int hashSize;
 } Queue;
 
 typedef struct HashNode {
@@ -37,7 +40,7 @@ int getDigit (char** input) {
     int digit = 0;
     char *currInput = *input;
     
-    while(*currInput >= '0' && *currInput <= '9')
+    while(isdigit((unsigned char)*currInput))
     {
         int newDigit = *currInput - '0';
         digit = digit * 10 + newDigit;
@@ -51,7 +54,7 @@ int getDigit (char** input) {
 int getCapacity(char *input) {
     int capacity = getDigit(&input);
 
-    if (capacity < MIN_CACHE_CAPACITY || capacity > MAX_CACHE_CAPACITY)
+    if (capacity < MIN_CACHE_CAPACITY || capacity > MAX_CACHE_CAPACITY || *input != '\0')
     {
         return 0;
     }
@@ -59,12 +62,34 @@ int getCapacity(char *input) {
     return capacity;
 }
 
-bool getKeyValue(char* input, int *key, char* value) {
-    *key = getDigit(&input);
-
-    if (*key == 0)
+bool getKey(char* input, int *key, bool checkEnd) {
+    if (*input == '\0' || !isdigit((unsigned char) *input))
     {
         return false;
+    }
+
+    *key = getDigit(&input);
+
+    if (!checkEnd) {
+        return true;
+    }
+
+    while (*input == ' ')
+    {
+        input++;
+    }
+    return (*input == '\0');
+}
+
+bool getKeyValue(char* input, int *key, char* value) {
+    if (!getKey(input, key, false)) 
+    {
+        return false;
+    }
+
+    while (isdigit((unsigned char)*input)) 
+    {
+        input++;
     }
 
     while (*input == ' ')
@@ -82,26 +107,69 @@ bool getKeyValue(char* input, int *key, char* value) {
     return true;
 }
 
-int getKey(char* input) {
-    return getDigit(&input);
-}
-
-void initialiseHashMap(HashNode*** hashMap, int capacity) {
-    HashNode** map = malloc(capacity * sizeof(HashNode*));
+void initialiseHashMap(HashNode*** hashMap, int hashSize) {
+    HashNode** map = malloc(hashSize * sizeof(HashNode*));
     if (!map)
     {
         printf("Memory Allocation Failed!\n");
         return;
     }
 
-    for (int index = 0; index < capacity; index++)
+    for (int index = 0; index < hashSize; index++)
     {
         map[index] = NULL;
     }
     *hashMap = map;
 }
 
-void initialiseQueue(Queue** queue, int capacity) {
+bool isPrime(int value) {
+    if (value <= 1)
+    {
+        return false;
+    }
+
+    if (value == 2) 
+    {
+        return true;
+    }
+
+    if (value % 2 == 0)
+    {
+        return false;
+    }
+
+    int sqrtVal = (int)sqrt(value);
+    for (int index = 3; index <= sqrtVal; index += 2)
+    {
+        if (value % index == 0)
+        {
+            return false;
+        }
+    }
+
+    return true;
+}
+
+int findNextPrime(int value) {
+    if (value <= SMALLEST_PRIME_NUMBER) 
+    {
+        return SMALLEST_PRIME_NUMBER;
+    }
+
+    if (value % SMALLEST_PRIME_NUMBER == 0) 
+    {
+        value++;
+    }
+
+    while (!isPrime(value))
+    {
+        value += 2;
+    }
+
+    return value;
+}
+
+void initialiseQueue(Queue** queue, int capacity, int hashSize) {
     Queue* newQueue = malloc(sizeof(Queue));
     if (!newQueue)
     {
@@ -111,20 +179,22 @@ void initialiseQueue(Queue** queue, int capacity) {
     newQueue->front = newQueue->rear = NULL;
     newQueue->size = 0;
     newQueue->capacity = capacity;
+    newQueue->hashSize = hashSize;
 
     *queue = newQueue;
 }
 
 void initialiseCache(HashNode*** hashMap, Queue** queue, int capacity) {
-    initialiseHashMap(hashMap, capacity);
-    initialiseQueue(queue, capacity);
+    int hashSize = findNextPrime(capacity);
+    initialiseHashMap(hashMap, hashSize);
+    initialiseQueue(queue, capacity, hashSize);
 }
 
-int hash(int key, int capacity) {
-    int index = key % capacity;
+int hash(int key, int hashSize) {
+    int index = key % hashSize;
     if (index < 0)
     {
-        return (index + capacity);
+        return (index + hashSize);
     } 
     else
     {
@@ -178,8 +248,8 @@ void insertAtFront(Queue* queue, QueueNode* node) {
     queue->size++;
 }
 
-QueueNode* findNode(HashNode** hashMap, int key, int capacity) {
-    int index = hash(key, capacity);
+QueueNode* findNode(HashNode** hashMap, int key, int hashSize) {
+    int index = hash(key, hashSize);
     HashNode* temp = hashMap[index];
     while (temp) {
         if (temp->key == key) {
@@ -195,12 +265,13 @@ void moveToFront(Queue* queue, QueueNode* node) {
     {
         return; 
     }
-    detachNode(queue, node);
+
+    removeNodeFromQueue(queue, node);
     insertAtFront(queue, node);
 }
 
 bool updateIfKeyExists(HashNode** hashMap, Queue* queue, int key, char* value) {
-    QueueNode* node = findNode(hashMap, key, queue->capacity);
+    QueueNode* node = findNode(hashMap, key, queue->hashSize);
 
     if (node) {
         strcpy(node->value, value);
@@ -211,8 +282,8 @@ bool updateIfKeyExists(HashNode** hashMap, Queue* queue, int key, char* value) {
     return false;
 }
 
-void deleteFromHashMap(HashNode** hashMap, int key, int capacity) {
-    int index = hash(key, capacity);
+void deleteFromHashMap(HashNode** hashMap, int key, int hashSize) {
+    int index = hash(key, hashSize);
     HashNode* curr = hashMap[index];
     HashNode* prev = NULL;
 
@@ -270,7 +341,7 @@ void deleteLRU(HashNode** hashMap, Queue* queue) {
 
     int key = queue->rear->key;
 
-    deleteFromHashMap(hashMap, key, queue->capacity);
+    deleteFromHashMap(hashMap, key, queue->hashSize);
 
     deleteFromQueue(queue);
 }
@@ -305,8 +376,8 @@ HashNode* createHashNode(int key, QueueNode* queueNode) {
     return newHashNode;
 }
 
-void insertIntoHashMap(HashNode** hashMap, HashNode* node, int capacity) {
-    int index = hash(node->key, capacity);
+void insertIntoHashMap(HashNode** hashMap, HashNode* node, int hashSize) {
+    int index = hash(node->key, hashSize);
     node->next = hashMap[index];
     hashMap[index] = node;
 }
@@ -316,7 +387,7 @@ void insertNewKey(HashNode** hashMap, Queue* queue, int key, char* value) {
     HashNode* newHashNode = createHashNode(key, newQueueNode);
 
     insertAtFront(queue, newQueueNode);
-    insertIntoHashMap(hashMap, newHashNode, queue->capacity);
+    insertIntoHashMap(hashMap, newHashNode, queue->hashSize);
 }
 
 void handlePut(HashNode** hashMap, Queue* queue, int key, char* value) {
@@ -334,8 +405,8 @@ void handlePut(HashNode** hashMap, Queue* queue, int key, char* value) {
 }
 
 char* handleGet(HashNode** hashMap, Queue* queue, int key) {
-    QueueNode* node = findNode(hashMap, key, queue->capacity);
-    
+    QueueNode* node = findNode(hashMap, key, queue->hashSize);
+
     if (node) {
         moveToFront(queue, node);
         return node->value;
@@ -356,8 +427,8 @@ void freeQueue(Queue* queue) {
     queue = NULL;
 }
 
-void freeHashMap(HashNode** hashMap, int capacity) {
-    for (int index = 0; index < capacity; index++)
+void freeHashMap(HashNode** hashMap, int hashSize) {
+    for (int index = 0; index < hashSize; index++)
     {
         HashNode* temp = hashMap[index];
         while (temp)
@@ -378,7 +449,7 @@ void freeCache(HashNode** hashMap, Queue* queue) {
         return;
     }
 
-    freeHashMap(hashMap, queue->capacity);
+    freeHashMap(hashMap, queue->hashSize);
     freeQueue(queue);  
 }
 
@@ -399,8 +470,14 @@ int main() {
             if (capacity == 0)
             {
                 printf("Invalid Command Syntax.\n");
+                continue;
             }
 
+            if (hashMap != NULL || queue != NULL)
+            {
+                freeCache(hashMap, queue);
+            }
+            
             initialiseCache(&hashMap, &queue, capacity);
             printf("Cache is now initialised.\n");
         }
@@ -433,7 +510,12 @@ int main() {
                 continue;
             }
 
-            int key = getKey(input + strlen(CMD_GET));
+            int key = 0;
+            if (!getKey(input + strlen(CMD_GET), &key, true))
+            {
+                printf("Invalid Command Syntax.\n");
+                continue;
+            }
             char* value = handleGet(hashMap, queue, key);
             if (value)
             {
@@ -448,6 +530,8 @@ int main() {
         else if (strcmp(input, CMD_EXIT) == 0)
         {
             freeCache(hashMap, queue);
+            hashMap = NULL;
+            queue = NULL;
             return 0;
         }
 
