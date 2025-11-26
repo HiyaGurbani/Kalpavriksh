@@ -85,10 +85,9 @@ void deleteLRU(HashNode** hashMap, Queue* queue) {
 
 void insertNewKey(HashNode** hashMap, Queue* queue, int key, char* value) {
     QueueNode* newQueueNode = createQueueNode(key, value);
-    HashNode* newHashNode = createHashNode(key, newQueueNode);
-
+    
     insertAtFront(queue, newQueueNode);
-    insertIntoHashMap(hashMap, newHashNode, queue->hashSize);
+    insertIntoHashMap(hashMap, newQueueNode, queue->hashSize);
 }
 
 void handlePut(HashNode** hashMap, Queue* queue, int key, char* value) {

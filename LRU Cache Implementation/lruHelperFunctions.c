@@ -82,12 +82,12 @@ bool isPrime(int value) {
         return false;
     }
 
-    if (value == 2) 
+    if (value == SMALLEST_PRIME_NUMBER) 
     {
         return true;
     }
 
-    if (value % 2 == 0)
+    if (value % SMALLEST_PRIME_NUMBER == 0)
     {
         return false;
     }
@@ -171,10 +171,23 @@ void insertAtFront(Queue* queue, QueueNode* node) {
     queue->size++;
 }
 
-void insertIntoHashMap(HashNode** hashMap, HashNode* node, int hashSize) {
+void insertIntoHashMap(HashNode** hashMap, QueueNode* node, int hashSize) {
     int index = hash(node->key, hashSize);
-    node->next = hashMap[index];
-    hashMap[index] = node;
+
+    HashNode* temp = hashMap[index];
+
+    while (temp)
+    {
+        if (temp->key == node->key)
+        {
+            return;
+        }
+        temp = temp->next;
+    }
+
+    HashNode* newHashNode = createHashNode(node->key, node);
+    newHashNode->next = hashMap[index];
+    hashMap[index] = newHashNode;
 }
 
 int hash(int key, int hashSize) {

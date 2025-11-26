@@ -75,7 +75,7 @@ int findNextPrime(int value);
 QueueNode* createQueueNode(int key, char* value);
 HashNode* createHashNode(int key, QueueNode* queueNode);
 void insertAtFront(Queue* queue, QueueNode* node);
-void insertIntoHashMap(HashNode** hashMap, HashNode* node, int hashSize);
+void insertIntoHashMap(HashNode** hashMap, QueueNode* node, int hashSize);
 int hash(int key, int hashSize);
 void removeNodeFromQueue(Queue* queue, QueueNode* node);
 void deleteFromHashMap(HashNode** hashMap, int key, int hashSize);
