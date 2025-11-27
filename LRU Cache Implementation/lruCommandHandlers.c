@@ -9,7 +9,7 @@ void displayMenuInstructions() {
     printf("4. exit                     : Exit the program\n");
 }
 
-void processCreateCacheCommand(HashNode*** hashMap, Queue** queue, char* input) {
+void processCreateCacheCommand(LRUCache** cache, char* input) {
     int capacity = getCapacity(input + strlen(CMD_CREATE_CACHE));
     if (capacity == 0)
     {
@@ -23,21 +23,20 @@ void processCreateCacheCommand(HashNode*** hashMap, Queue** queue, char* input) 
         return;
     }
 
-    if (*hashMap != NULL || *queue != NULL)
+    if (*cache)
     {
-        freeCache(*hashMap, *queue);
-        *hashMap = NULL;
-        *queue = NULL;
+        freeCache(*cache);
+        *cache = NULL;
     }
     
-    initialiseCache(hashMap, queue, capacity);
+    *cache = initialiseCache(capacity);
     printf("Cache is now initialised.\n");
 }
 
-void processPutCommand(HashNode** hashMap, Queue* queue, char* input) {
-    if (!hashMap || !queue)
+void processPutCommand(LRUCache* cache, char* input) {
+    if (!cache) 
     {
-        printf("Cache not initialised.\n");
+        printf("Cache not initialized.\n");
         return;
     }
 
@@ -49,25 +48,26 @@ void processPutCommand(HashNode** hashMap, Queue* queue, char* input) {
         return;
     }
     
-    handlePut(hashMap, queue, key, value);
+    handlePut(cache, key, value);
     printf("Key %d inserted/updated successfully.\n", key);
 }
 
-void processGetCommand(HashNode** hashMap, Queue* queue, char* input) {
-    if (!hashMap || !queue)
+void processGetCommand(LRUCache* cache, char* input) {
+    if (!cache) 
     {
-        printf("Cache not initialised.\n");
+        printf("Cache not initialized.\n");
         return;
     }
 
     int key = 0;
-    if (!getKey(input + strlen(CMD_GET), &key, true))
+    char* currString = input + strlen(CMD_GET);
+    if (!getKey(&currString, &key, true))
     {
         printf("Invalid Command Syntax.\n");
         return;
     }
 
-    char* value = handleGet(hashMap, queue, key);
+    char* value = handleGet(cache, key);
     if (value)
     {
         printf("%s\n", value);
@@ -78,17 +78,14 @@ void processGetCommand(HashNode** hashMap, Queue* queue, char* input) {
     }
 }
 
-void freeCache(HashNode** hashMap, Queue* queue) {
-    if (!queue || !hashMap)
-    {
-        return;
-    }
-
-    freeHashMap(hashMap, queue->hashSize);
-    freeQueue(queue);  
+void freeCache(LRUCache* cache) {
+    freeHashMap(cache->hashMap, cache->hashSize);
+    freeQueue(cache->queue);
+    free(cache);
+    cache = NULL;  
 }
 
-void handleCommand(HashNode*** hashMap, Queue** queue) {
+void handleCommand(LRUCache** cache) {
     char input[INPUT_SIZE];
     printf("\nEnter the command: ");
     fgets(input, INPUT_SIZE, stdin);
@@ -96,25 +93,34 @@ void handleCommand(HashNode*** hashMap, Queue** queue) {
 
     if (strncmp(input, CMD_CREATE_CACHE, strlen(CMD_CREATE_CACHE)) == 0)
     {
-        processCreateCacheCommand(hashMap, queue, input);
+        processCreateCacheCommand(cache, input);
     }
 
     else if (strncmp(input, CMD_PUT, strlen(CMD_PUT)) == 0)
     {
-        processPutCommand(*hashMap, *queue, input);
+        if (!*cache) {
+            printf("Cache not initialised.\n");
+            return;
+        }
+        processPutCommand(*cache, input);
     }
 
     else if (strncmp(input, CMD_GET, strlen(CMD_GET)) == 0)
     {
-        processGetCommand(*hashMap, *queue, input);
+        if (!*cache) {
+            printf("Cache not initialised.\n");
+            return;
+        }
+        processGetCommand(*cache, input);
     }
 
     else if (strcmp(input, CMD_EXIT) == 0)
     {
-        freeCache(*hashMap, *queue);
+        if (*cache) {
+            freeCache(*cache);
+            *cache = NULL;
+        }
         printf("Exiting LRU Cache!\n");
-        *hashMap = NULL;
-        *queue = NULL;
         exit(0);
     }
 

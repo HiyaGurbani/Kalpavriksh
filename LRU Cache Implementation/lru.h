@@ -29,8 +29,6 @@ typedef struct Queue {
     QueueNode* front;
     QueueNode* rear;
     int size;
-    int capacity;
-    int hashSize;
 } Queue;
 
 typedef struct HashNode {
@@ -39,26 +37,33 @@ typedef struct HashNode {
     struct HashNode* next;
 } HashNode;
 
+typedef struct LRUCache {
+    HashNode** hashMap;
+    Queue* queue;
+    int capacity;
+    int hashSize;
+} LRUCache;
+
 //Command Handlers
 void displayMenuInstructions();
-void processCreateCacheCommand(HashNode*** hashMap, Queue** queue, char* input);
-void processPutCommand(HashNode** hashMap, Queue* queue, char* input);
-void processGetCommand(HashNode** hashMap, Queue* queue, char* input);
-void handleCommand(HashNode*** hashMap, Queue** queue);
-void freeCache(HashNode** hashMap, Queue* queue);
+void processCreateCacheCommand(LRUCache** cache, char* input);
+void processPutCommand(LRUCache* cache, char* input);
+void processGetCommand(LRUCache* cache, char* input);
+void handleCommand(LRUCache** cache);
+void freeCache(LRUCache* cache);
 
 //Core Cache Functions
-void initialiseHashMap(HashNode*** hashMap, int hashSize);
-void initialiseQueue(Queue** queue, int capacity, int hashSize);
-void initialiseCache(HashNode*** hashMap, Queue** queue, int capacity);
+HashNode** initialiseHashMap(int hashSize);
+Queue* initialiseQueue();
+LRUCache* initialiseCache(int capacity);
 
 QueueNode* findNode(HashNode** hashMap, int key, int hashSize);
 void moveToFront(Queue* queue, QueueNode* node);
-bool updateIfKeyExists(HashNode** hashMap, Queue* queue, int key, char* value);
-void deleteLRU(HashNode** hashMap, Queue* queue);
-void insertNewKey(HashNode** hashMap, Queue* queue, int key, char* value);
-void handlePut(HashNode** hashMap, Queue* queue, int key, char* value);
-char* handleGet(HashNode** hashMap, Queue* queue, int key);
+bool updateIfKeyExists(LRUCache* cache, int key, char* value);
+void deleteLRU(LRUCache* cache);
+void insertNewKey(LRUCache* cache, int key, char* value);
+void handlePut(LRUCache* cache, int key, char* value);
+char* handleGet(LRUCache* cache, int key);
 
 void freeHashMap(HashNode** hashMap, int hashSize);
 void freeQueue(Queue* queue);
@@ -66,7 +71,7 @@ void freeQueue(Queue* queue);
 //Helper Functions
 int getDigit (char** input);
 int getCapacity(char *input);
-bool getKey(char* input, int *key, bool checkEnd);
+bool getKey(char** input, int *key, bool checkEnd);
 bool getKeyValue(char* input, int *key, char* value);
 
 bool isPrime(int value);

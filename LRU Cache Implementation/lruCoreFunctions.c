@@ -1,21 +1,22 @@
 #include "lru.h"
 
-void initialiseHashMap(HashNode*** hashMap, int hashSize) {
+HashNode** initialiseHashMap(int hashSize) {
     HashNode** map = malloc(hashSize * sizeof(HashNode*));
     if (!map)
     {
         printf("Memory Allocation Failed!\n");
-        return;
+        exit(1);
     }
 
     for (int index = 0; index < hashSize; index++)
     {
         map[index] = NULL;
     }
-    *hashMap = map;
+    
+    return map;
 }
 
-void initialiseQueue(Queue** queue, int capacity, int hashSize) {
+Queue* initialiseQueue() {
     Queue* newQueue = malloc(sizeof(Queue));
     if (!newQueue)
     {
@@ -24,17 +25,26 @@ void initialiseQueue(Queue** queue, int capacity, int hashSize) {
     }
     newQueue->front = newQueue->rear = NULL;
     newQueue->size = 0;
-    newQueue->capacity = capacity;
-    newQueue->hashSize = hashSize;
 
-    *queue = newQueue;
+    return newQueue;
 }
 
-void initialiseCache(HashNode*** hashMap, Queue** queue, int capacity) {
-    int hashSize = findNextPrime(capacity);
-    initialiseHashMap(hashMap, hashSize);
-    initialiseQueue(queue, capacity, hashSize);
-}
+LRUCache* initialiseCache(int capacity) {
+    LRUCache* cache = malloc(sizeof(LRUCache));
+    if (!cache)
+    {
+        printf("Memory Allocation Failed!");
+        exit(1);
+    }
+    
+    cache->capacity = capacity;
+    cache->hashSize = findNextPrime(capacity);
+
+    cache->hashMap = initialiseHashMap(cache->hashSize);
+    cache->queue = initialiseQueue();
+
+    return cache;
+} 
 
 QueueNode* findNode(HashNode** hashMap, int key, int hashSize) {
     int index = hash(key, hashSize);
@@ -58,57 +68,57 @@ void moveToFront(Queue* queue, QueueNode* node) {
     insertAtFront(queue, node);
 }
 
-bool updateIfKeyExists(HashNode** hashMap, Queue* queue, int key, char* value) {
-    QueueNode* node = findNode(hashMap, key, queue->hashSize);
+bool updateIfKeyExists(LRUCache* cache, int key, char* value) {
+    QueueNode* node = findNode(cache->hashMap, key, cache->hashSize);
 
     if (node) {
         strcpy(node->value, value);
-        moveToFront(queue, node);
+        moveToFront(cache->queue, node);
         return true;
     }
 
     return false;
 }
 
-void deleteLRU(HashNode** hashMap, Queue* queue) {
-    if (!queue || !queue->rear)
+void deleteLRU(LRUCache* cache) {
+    if (!cache || !cache->queue || !cache->queue->rear)
     {
         return;
     }
 
-    int key = queue->rear->key;
+    int key = cache->queue->rear->key;
 
-    deleteFromHashMap(hashMap, key, queue->hashSize);
+    deleteFromHashMap(cache->hashMap, key, cache->hashSize);
 
-    deleteFromQueue(queue);
+    deleteFromQueue(cache->queue);
 }
 
-void insertNewKey(HashNode** hashMap, Queue* queue, int key, char* value) {
+void insertNewKey(LRUCache* cache, int key, char* value) {
     QueueNode* newQueueNode = createQueueNode(key, value);
     
-    insertAtFront(queue, newQueueNode);
-    insertIntoHashMap(hashMap, newQueueNode, queue->hashSize);
+    insertAtFront(cache->queue, newQueueNode);
+    insertIntoHashMap(cache->hashMap, newQueueNode, cache->hashSize);
 }
 
-void handlePut(HashNode** hashMap, Queue* queue, int key, char* value) {
-    if (updateIfKeyExists(hashMap, queue, key, value))
+void handlePut(LRUCache* cache, int key, char* value) {
+    if (updateIfKeyExists(cache, key, value))
     {
         return;
     }
 
-    if (queue->size == queue->capacity)
+    if (cache->queue->size == cache->capacity)
     {
-        deleteLRU(hashMap, queue);
+        deleteLRU(cache);
     }
 
-    insertNewKey(hashMap, queue, key, value);
+    insertNewKey(cache, key, value);
 }
 
-char* handleGet(HashNode** hashMap, Queue* queue, int key) {
-    QueueNode* node = findNode(hashMap, key, queue->hashSize);
+char* handleGet(LRUCache* cache, int key) {
+    QueueNode* node = findNode(cache->hashMap, key, cache->hashSize);
 
     if (node) {
-        moveToFront(queue, node);
+        moveToFront(cache->queue, node);
         return node->value;
     }
 

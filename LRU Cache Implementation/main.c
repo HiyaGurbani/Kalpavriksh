@@ -1,13 +1,12 @@
 #include "lru.h"
 
 int main() {
-    HashNode** hashMap = NULL;
-    Queue* queue = NULL;
+    LRUCache* cache = NULL;
 
     displayMenuInstructions();
 
     while(true)
     {
-        handleCommand(&hashMap, &queue);
+        handleCommand(&cache);
     }
 }

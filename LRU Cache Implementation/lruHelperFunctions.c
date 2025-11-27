@@ -31,34 +31,33 @@ int getCapacity(char *input) {
     return capacity;
 }
 
-bool getKey(char* input, int *key, bool checkEnd) {
-    if (*input == '\0' || !isdigit((unsigned char) *input))
+bool getKey(char** input, int *key, bool checkEnd) {
+    char *currChar = *input;
+
+    if (*currChar == '\0' || !isdigit((unsigned char) *currChar))
     {
         return false;
     }
 
-    *key = getDigit(&input);
+    *key = getDigit(&currChar);
+
+    *input = currChar;
 
     if (!checkEnd) {
         return true;
     }
 
-    while (*input == ' ')
+    while (*currChar == ' ')
     {
-        input++;
+        currChar++;
     }
-    return (*input == '\0');
+    return (*currChar == '\0');
 }
 
 bool getKeyValue(char* input, int *key, char* value) {
-    if (!getKey(input, key, false)) 
+    if (!getKey(&input, key, false)) 
     {
         return false;
-    }
-
-    while (isdigit((unsigned char)*input)) 
-    {
-        input++;
     }
 
     while (*input == ' ')
@@ -71,8 +70,10 @@ bool getKeyValue(char* input, int *key, char* value) {
         return false;
     }
 
-    strcpy(value, input);
-
+    strncpy(value, input, VALUE_SIZE);
+    
+    value[VALUE_SIZE - 1] = '\0';
+    
     return true;
 }
 
