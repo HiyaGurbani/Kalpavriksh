@@ -98,19 +98,11 @@ void handleCommand(LRUCache** cache) {
 
     else if (strncmp(input, CMD_PUT, strlen(CMD_PUT)) == 0)
     {
-        if (!*cache) {
-            printf("Cache not initialised.\n");
-            return;
-        }
         processPutCommand(*cache, input);
     }
 
     else if (strncmp(input, CMD_GET, strlen(CMD_GET)) == 0)
     {
-        if (!*cache) {
-            printf("Cache not initialised.\n");
-            return;
-        }
         processGetCommand(*cache, input);
     }
 

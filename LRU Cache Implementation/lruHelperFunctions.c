@@ -18,6 +18,11 @@ int getDigit (char** input) {
 int getCapacity(char *input) {
     int capacity = getDigit(&input);
 
+    while (*input == ' ')
+    {
+        input++;
+    }
+
     if (*input != '\0')
     {
         return -1;
@@ -34,23 +39,26 @@ int getCapacity(char *input) {
 bool getKey(char** input, int *key, bool checkEnd) {
     char *currChar = *input;
 
-    if (*currChar == '\0' || !isdigit((unsigned char) *currChar))
+    int sign = 1;
+    if (*currChar == '-')
     {
+        sign = -1;
+        currChar++;
+    }
+
+    if (*currChar == '\0' || !isdigit((unsigned char) *currChar)) {
         return false;
     }
 
     *key = getDigit(&currChar);
 
+    *key = *key * sign;
     *input = currChar;
 
     if (!checkEnd) {
         return true;
     }
 
-    while (*currChar == ' ')
-    {
-        currChar++;
-    }
     return (*currChar == '\0');
 }
 
