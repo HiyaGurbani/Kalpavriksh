@@ -8,9 +8,16 @@
 typedef struct ProcessControlBlock {
     char name[SIZE];
     int burstTime;
+    int remBurstTime;
     int ioStartTime;
     int ioDuration;
-    char state[100];
+    int ioRemaining;
+    int cpuExpected;
+    char state[100]; //Ready, Running, Waiting, Terminated, Killed
+    int turnAroundTime;
+    int waitingTime;
+    bool isKilled;
+    bool ioStartedThisTick;
 } ProcessControlBlock;
 
 typedef struct HashNode {
@@ -49,8 +56,43 @@ HashNode* createHashNode(int key, ProcessControlBlock* pcb) {
 
     newNode->key = key;
     newNode->value = pcb;
+    newNode->next = NULL;
 
     return newNode;
+}
+
+int hash(int key) {
+    return (key % HASH_SIZE + HASH_SIZE) % HASH_SIZE;
+}
+
+void insertIntoHashMap(HashMap* hashMap, int key, ProcessControlBlock* pcb) {
+    if (!hashMap || !pcb)
+    {
+        return;
+    }
+
+    int index = hash(key);
+
+    HashNode* newNode = createHashNode(key, pcb);
+    newNode->next = hashMap->buckets[index];
+    hashMap->buckets[index] = newNode;
+}
+
+ProcessControlBlock* getValueByKey(HashMap* hashMap, int key) {
+    int index = hash(key);
+
+    HashNode* temp = hashMap->buckets[index];
+
+    while(temp) 
+    {
+        if (temp->key == key)
+        {
+            return temp->value;
+        }
+        temp = temp->next;
+    }
+
+    return NULL;
 }
 
 typedef struct Node {
@@ -74,23 +116,6 @@ Queue* initialiseQueue() {
     queue->front = queue->rear = NULL;
 
     return queue;
-}
-
-int hash(int key) {
-    return (key % HASH_SIZE + HASH_SIZE) % HASH_SIZE;
-}
-
-void insertIntoHashMap(HashMap* hashMap, int key, ProcessControlBlock* pcb) {
-    if (!hashMap || !pcb)
-    {
-        return;
-    }
-
-    int index = hash(key);
-
-    HashNode* newNode = createHashNode(key, pcb);
-    newNode->next = hashMap->buckets[index];
-    hashMap->buckets[index] = newNode;
 }
 
 Node* createQueueNode(int processId) {
@@ -121,7 +146,171 @@ void enqueue(Queue* queue, int processId) {
     }
 
     queue->rear->next = newNode;
-    newNode = queue->rear;
+    queue->rear = newNode;
+}
+
+int dequeue(Queue* queue) {
+    if (!queue || !queue->front)
+    {
+        printf("Empty Queue\n");
+        return -1;
+    }
+
+    Node* toDelete  = queue->front;
+    int processId = toDelete->processId;
+
+    if (queue->front == queue->rear) 
+    {
+        queue->rear = NULL;
+    }
+    queue->front = queue->front->next;
+    free(toDelete);
+
+    return processId;
+}
+
+bool removeFromQueue(Queue* queue, int processId) {
+    if (!queue || !queue->front)
+    {
+        return false;
+    }
+
+    Node* curr = queue->front, *prev = NULL;
+
+    while (curr) {
+        if (curr->processId == processId)
+        {
+            if (!prev)
+            {
+                queue->front = curr->next;
+                if (queue->rear == curr) 
+                {
+                    queue->rear = NULL;
+                }
+            }
+            else
+            {
+                prev->next = curr->next;
+                if (queue->rear == curr)
+                {
+                    queue->rear = prev;
+                }
+            }
+
+            free(curr);
+            return true;
+        }
+        prev = curr;
+        curr = curr->next;
+    }
+
+    return false;
+}
+
+bool isInQueue(Queue* queue, int processId) {
+    Node* curr = queue->front;
+    while (curr)
+    {
+        if (curr->processId == processId)
+        {
+            return true;
+        }
+        curr = curr->next;
+    }
+    return false;
+}
+
+void reduceIoDuration(Queue* waitingQueue, Queue* readyQueue, HashMap* hashMap) {
+    Node* curr = waitingQueue->front;
+    Node* prev = NULL;
+
+    while (curr)
+    {
+        int processId = curr->processId;
+        ProcessControlBlock* pcb = getValueByKey(hashMap, processId);
+        if (!pcb)
+        {
+            prev = curr;
+            curr = curr->next;
+            continue;
+        }
+
+        if (pcb->ioStartedThisTick)
+        {
+            pcb->ioStartedThisTick = false;
+            prev = curr;
+            curr = curr->next;
+            continue;
+        }
+
+        pcb->ioRemaining--;
+
+        if (pcb->ioRemaining <= 0)
+        {
+            Node* toRemove = curr;
+
+            if (!prev)
+            {
+                waitingQueue->front = curr->next;
+            }
+            else
+            {
+                prev->next = curr->next;
+            }
+
+            if (waitingQueue->rear == curr)
+            {
+                waitingQueue->rear = prev;
+            }
+
+            curr = curr->next;
+            toRemove->next = NULL;
+            free(toRemove);
+
+            strcpy(pcb->state, "Ready");
+            enqueue(readyQueue, processId);
+        }
+        else
+        {
+            prev = curr;
+            curr = curr->next;
+        }
+    }
+}
+
+
+void fcfs(HashMap* hashMap, Queue* readyQueue, int numberOfProcess) {
+    Queue* waitingQueue = initialiseQueue();
+    Queue* terminatedQueue = initialiseQueue();
+
+    int clock = 0;
+    int completedProcess = 0;
+
+    while(completedProcess < numberOfProcess) {
+        int processId = dequeue(readyQueue);
+        ProcessControlBlock* pcb = getValueByKey(hashMap, processId);
+
+        pcb->remBurstTime--;
+        
+        if (pcb->ioStartTime == clock)
+        {
+            enqueue(waitingQueue, processId);
+        }
+
+        reduceIODuration(waitingQueue, readyQueue, hashMap);
+
+
+        if (pcb->remBurstTime == 0)
+        {
+            enqueue(terminatedQueue, processId);
+            pcb->turnAroundTime = clock + 1;
+            pcb->waitingTime = pcb->turnAroundTime - pcb->burstTime;
+            completedProcess++;
+        }
+
+
+        clock++;
+    }
 }
 
 int main() {
@@ -144,22 +333,28 @@ int main() {
         while (getchar() != '\n');
         fgets(pcb->name, sizeof(pcb->name), stdin);
         pcb->name[strcspn(pcb->name, "\n")] = '\0';
+        pcb->waitingTime = 0;
+        pcb->completionTime = 0;
+        pcb->turnAroundTime = 0;
 
         printf("Enter Process ID: \n");
         scanf("%d", &processId);
 
         printf("Enter Process Burst Time: \n");
-        scanf("%d", pcb->burstTime);
+        scanf("%d", &pcb->burstTime);
+        pcb->remBurstTime = pcb->burstTime;
 
         printf("Enter Process IO Start Time: \n");
-        scanf("%d", pcb->ioStartTime);
+        scanf("%d", &pcb->ioStartTime);
 
         printf("Enter Process IO Duration: \n");
-        scanf("%d", pcb->ioDuration);
+        scanf("%d", &pcb->ioDuration);
 
         strcpy(pcb->state, "READY");
 
         insertIntoHashMap(hashMap, processId, pcb);
         enqueue(readyQueue, processId);
     }
+
+    fcfs(hashMap, readyQueue, numberOfProcess);
 }
