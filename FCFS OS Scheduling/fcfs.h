@@ -26,7 +26,7 @@ typedef enum ExecuteResult {
 typedef struct ProcessControlBlock {
     char name[SIZE];
     int burstTime;
-    int remBurstTime;
+    int remainingBurstTime;
     int ioStartTime;
     int ioDuration;
     int ioRemaining;
@@ -77,6 +77,7 @@ void fcfsScheduler(HashMap* hashMap, Queue* readyQueue, int totalProcesses, Kill
 
 
 //Helper Functions
+void getValidProcessName(char* name);
 void getValidInteger(int *value);
 void getValidPositiveInteger(int *value);
 HashNode* createHashNode(int key, ProcessControlBlock* pcb);

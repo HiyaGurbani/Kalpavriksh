@@ -8,10 +8,7 @@ HashMap* createHashMap() {
         exit(1);
     }
 
-    for (int index = 0; index < HASH_SIZE; index++)
-    {
-        map->buckets[index] = NULL;
-    }
+    memset(map->buckets, 0, sizeof(map->buckets));
 
     return map;
 }
@@ -58,16 +55,14 @@ void readProcessInput(HashMap* hashMap, Queue* readyQueue, int* totalProcesses) 
         ProcessControlBlock* pcb = createProcess();
 
         printf("Process Name: ");
-        while (getchar() != '\n');
-        fgets(pcb->name, sizeof(pcb->name), stdin);
-        pcb->name[strcspn(pcb->name, "\n")] = '\0';
+        getValidProcessName(pcb->name);    
 
         printf("Process ID: "); 
         getValidPositiveInteger(&processId);
 
         printf("Burst Time: "); 
         getValidPositiveInteger(&pcb->burstTime);
-        pcb->remBurstTime = pcb->burstTime;
+        pcb->remainingBurstTime = pcb->burstTime;
         
         printf("IO Start Time (-1 for none): "); 
         getValidInteger(&pcb->ioStartTime);
@@ -119,7 +114,8 @@ int* runningProcessId,  int* terminatedCount) {
 
         int processId = kills[index].processId;
         ProcessControlBlock* pcb = getFromHashMap(hashMap, processId);
-        if (!pcb || pcb->state == TERMINATED || pcb->state == KILLED) {
+        if (!pcb || pcb->state == TERMINATED || pcb->state == KILLED) 
+        {
             continue;
         }
 

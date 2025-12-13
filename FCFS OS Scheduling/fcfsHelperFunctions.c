@@ -1,5 +1,22 @@
 #include "fcfs.h"
 
+void getValidProcessName(char* name) {
+    while (true) {
+        if (!fgets(name, SIZE, stdin)) {
+            printf("Invalid Input Error\n");
+            continue;
+        }
+
+        name[strcspn(name, "\n")] = '\0';
+
+        if (strlen(name) == 0) {
+            printf("Name cannot be empty. Enter again: ");
+        } else {
+            break;
+        }
+    }
+}
+
 void getValidInteger(int *value) {
     while (scanf("%d", value) != 1)
     {
@@ -223,14 +240,14 @@ ExecuteResult executeProcessTick(ProcessControlBlock* pcb) {
     }
 
     pcb->cpuExecuted++;
-    pcb->remBurstTime--;
+    pcb->remainingBurstTime--;
 
-    if (pcb->ioStartTime >= 0 && pcb->cpuExecuted == pcb->ioStartTime && pcb->remBurstTime > 0)
+    if (pcb->ioStartTime >= 0 && pcb->cpuExecuted == pcb->ioStartTime && pcb->remainingBurstTime > 0)
     {
         return PROCESS_WAITING; 
     }    
 
-    if (pcb->remBurstTime <= 0)
+    if (pcb->remainingBurstTime <= 0)
     {
         return PROCESS_TERMINATED; 
     }
@@ -306,12 +323,17 @@ ProcessControlBlock* createProcess() {
         exit(1);
     }
 
-    pcb->cpuExecuted = 0;
-    pcb->waitingTime = 0;
-    pcb->turnAroundTime = 0;
+    pcb->name[0] = '\0';
+    pcb->burstTime = 0;
+    pcb->remainingBurstTime = 0;
+    pcb->ioStartTime = -1;
+    pcb->ioDuration = 0;
     pcb->ioRemaining = 0;
-    pcb->ioStartedThisTick = false;
+    pcb->cpuExecuted = 0;
     pcb->state = READY;
-
+    pcb->turnAroundTime = 0;
+    pcb->waitingTime = 0;
+    pcb->ioStartedThisTick = false;
+    
     return pcb;
 }
