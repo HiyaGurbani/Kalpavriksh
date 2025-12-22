@@ -1,9 +1,18 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
+#include <sys/ipc.h>
+#include <sys/msg.h>
 #include <sys/wait.h>
 
-#define FILENAME "data.txt"
+#define MSG_KEY 1234
+#define MAX 50
+
+typedef struct Message {
+    long msgType;
+    int size;
+    int array[MAX];
+} Message;
 
 int* readArray(int *size) {
     printf("Enter the size of array: ");
@@ -33,44 +42,10 @@ void display(int* array, int size) {
     printf("\n");
 }
 
-void writeToFile(int* array, int size) {
-    FILE *file = fopen(FILENAME, "w");
-    if (!file)
-    {
-        perror("Error in Opening File!\n");
-        exit(1);
-    }
-
-    fprintf(file, "%d\n", size);
-    for (int index = 0; index < size; index++)
-    {
-        fprintf(file, "%d ", array[index]);
-    }
-
-    fclose(file);
-}
-
-void readFromFile(int* array, int* size) {
-    FILE *file = fopen(FILENAME, "r");
-    if (!file)
-    {
-        perror("Error in Opening File!\n");
-        exit(1);
-    }
-
-    fscanf(file, "%d", size);
-    for (int index = 0; index < *size; index++)
-    {
-        fscanf(file, "%d", &array[index]);
-    }
-
-    fclose(file);
-}
-
-void swap(int* value1, int* value2) {
-    int temp = *value1;
-    *value1 = *value2;
-    *value2 = temp;
+void swap(int *a, int *b) {
+    int temp = *a;
+    *a = *b;
+    *b = temp;
 }
 
 int partition(int* array, int low, int high) {
@@ -82,7 +57,7 @@ int partition(int* array, int low, int high) {
         if (array[currentIndex] < pivot)
         {
             index++;
-            swap(&array[index], &array[currentIndex]);
+            swap(&array[currentIndex], &array[index]);
         }
     }
 
@@ -90,13 +65,36 @@ int partition(int* array, int low, int high) {
     return index + 1;
 }
 
-void quickSort(int* array, int low, int high) {
+void quickSort(int *array, int low, int high) {
     if (low < high)
     {
         int partitionIndex = partition(array, low, high);
-
         quickSort(array, low, partitionIndex - 1);
         quickSort(array, partitionIndex + 1, high);
+    }
+}
+
+void sendMessage(int msgId, long msgType, int *array, int size) {
+    Message message;
+    message.msgType = msgType;
+    message.size = size;
+
+    for (int index = 0; index < size; index++)
+    {
+        message.array[index] = array[index];
+    }
+
+    msgsnd(msgId, &message, sizeof(message) - sizeof(long), 0);
+}
+
+void receiveMessage(int msgId, long type, int *array, int *size) {
+    Message message;
+    msgrcv(msgId, &message, sizeof(message) - sizeof(long), type, 0);
+
+    *size = message.size;
+    for (int index = 0; index < *size; index++)
+    {
+        array[index] = message.array[index];
     }
 }
 
@@ -104,10 +102,15 @@ int main() {
     int size;
     int* array = readArray(&size);
 
+    int msgId = msgget(MSG_KEY, IPC_CREAT | 0666);
+    if (msgId < 0)
+    {
+        perror("msgget failed!");
+        exit(1);
+    }
+    
     printf("Array Before Sorting: \n");
     display(array, size);
-
-    writeToFile(array, size);
 
     pid_t pid = fork();
 
@@ -120,19 +123,23 @@ int main() {
 
     else if (pid == 0)
     {
-        readFromFile(array, &size);
+        receiveMessage(msgId, 1, array, &size);
         quickSort(array, 0, size - 1);
-        writeToFile(array, size);
+        sendMessage(msgId, 2, array, size);
         free(array);
         exit(0);
     }
 
     else
     {
+        sendMessage(msgId, 1, array, size);
         wait(NULL);
-        readFromFile(array, &size);
+        receiveMessage(msgId, 2, array, &size);
+
         printf("Array After Sorting: \n");
         display(array, size);
+
+        msgctl(msgId, IPC_RMID, NULL);
         free(array);
     }
 
