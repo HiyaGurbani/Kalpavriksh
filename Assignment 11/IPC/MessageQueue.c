@@ -6,12 +6,12 @@
 #include <sys/wait.h>
 
 #define MESSAGE_KEY 1234
-#define MAX 50
+#define SIZE 50
 
 typedef struct Message {
     long messageType;
     int size;
-    int array[MAX];
+    int array[SIZE];
 } Message;
 
 int* readArray(int *size) {

@@ -31,7 +31,6 @@ void display(int* array, int size) {
     printf("\n");
 }
 
-
 void swap(int *a, int *b) {
     int temp = *a;
     *a = *b;
