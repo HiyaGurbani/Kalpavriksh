@@ -2,36 +2,9 @@
 #include <stdlib.h>
 #include <unistd.h>
 #include <sys/wait.h>
+#include "IPC_HELPER.h"
 
 #define FILENAME "data.txt"
-
-int* readArray(int *size) {
-    printf("Enter the size of array: ");
-    scanf("%d", size);
-
-    int* array = malloc((*size) * sizeof(int));
-    if (!array) 
-    {
-        printf("Memory Allocation Failed!\n");
-        exit(1);
-    }
-
-    printf("Enter elements of array: ");
-    for (int index = 0; index < *size; index++)
-    {
-        scanf("%d", &array[index]);
-    }
-
-    return array;
-}
-
-void display(int* array, int size) {
-    for (int index = 0; index < size; index++)
-    {
-        printf("%d ", array[index]);
-    }
-    printf("\n");
-}
 
 void writeToFile(int* array, int size) {
     FILE *file = fopen(FILENAME, "w");
@@ -67,39 +40,6 @@ void readFromFile(int* array, int* size) {
     fclose(file);
 }
 
-void swap(int* value1, int* value2) {
-    int temp = *value1;
-    *value1 = *value2;
-    *value2 = temp;
-}
-
-int partition(int* array, int low, int high) {
-    int pivot = array[high];
-    int index = low - 1;
-
-    for (int currentIndex = low; currentIndex < high; currentIndex++)
-    {
-        if (array[currentIndex] < pivot)
-        {
-            index++;
-            swap(&array[index], &array[currentIndex]);
-        }
-    }
-
-    swap(&array[index + 1], &array[high]);
-    return index + 1;
-}
-
-void quickSort(int* array, int low, int high) {
-    if (low < high)
-    {
-        int partitionIndex = partition(array, low, high);
-
-        quickSort(array, low, partitionIndex - 1);
-        quickSort(array, partitionIndex + 1, high);
-    }
-}
-
 void childProcess(int* array, int size) {
     readFromFile(array, &size);
     quickSort(array, 0, size - 1);
@@ -112,7 +52,7 @@ void parentProcess(int* array, int size) {
     wait(NULL);
     readFromFile(array, &size);
     printf("Array After Sorting: \n");
-    display(array, size);
+    displayArray(array, size);
 }
 
 int main() {
@@ -120,7 +60,7 @@ int main() {
     int* array = readArray(&size);
 
     printf("Array Before Sorting: \n");
-    display(array, size);
+    displayArray(array, size);
 
     writeToFile(array, size);
 

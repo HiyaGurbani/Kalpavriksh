@@ -4,6 +4,7 @@
 #include <sys/ipc.h>
 #include <sys/shm.h>
 #include <sys/wait.h>
+#include "IPC_HELPER.h"
 
 #define SHM_KEY 1234
 #define SIZE 100
@@ -15,53 +16,12 @@ typedef struct SharedData {
 
 void readArray(SharedData *data) {
     printf("Enter the size of array: ");
-    scanf("%d", &data->size);
+    getValidSize(&data->size);
 
     printf("Enter elements of array: ");
     for (int index = 0; index < data->size; index++)
     {
-        scanf("%d", &data->array[index]);
-    }
-}
-
-void display(SharedData *data) {
-    for (int index = 0; index < data->size; index++)
-    {
-        printf("%d ", data->array[index]);
-    }
-    printf("\n");
-}
-
-
-void swap(int *a, int *b) {
-    int temp = *a;
-    *a = *b;
-    *b = temp;
-}
-
-int partition(int* array, int low, int high) {
-    int pivot = array[high];
-    int index = low - 1;
-
-    for (int currentIndex = low; currentIndex < high; currentIndex++)
-    {
-        if (array[currentIndex] < pivot)
-        {
-            index++;
-            swap(&array[currentIndex], &array[index]);
-        }
-    }
-
-    swap(&array[index + 1], &array[high]);
-    return index + 1;
-}
-
-void quickSort(int *array, int low, int high) {
-    if (low < high)
-    {
-        int partitionIndex = partition(array, low, high);
-        quickSort(array, low, partitionIndex - 1);
-        quickSort(array, partitionIndex + 1, high);
+        getValidInteger(&data->array[index]);
     }
 }
 
@@ -72,12 +32,12 @@ void childProcess(SharedData *data) {
 
 void parentProcess(SharedData *data) {
     printf("Array Before Sorting: \n");
-    display(data);
+    displayArray(data->array, data->size);
 
     wait(NULL);
 
     printf("Array After Sorting: \n");
-    display(data);
+    displayArray(data->array, data->size);
 }
 
 int main() {
