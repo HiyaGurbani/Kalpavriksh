@@ -1,18 +1,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
-#include <sys/ipc.h>
-#include <sys/msg.h>
 #include <sys/wait.h>
-
-#define MESSAGE_KEY 1234
-#define MAX 50
-
-typedef struct Message {
-    long messageType;
-    int size;
-    int array[MAX];
-} Message;
 
 int* readArray(int *size) {
     printf("Enter the size of array: ");
@@ -41,6 +30,7 @@ void display(int* array, int size) {
     }
     printf("\n");
 }
+
 
 void swap(int *a, int *b) {
     int temp = *a;
@@ -74,62 +64,78 @@ void quickSort(int *array, int low, int high) {
     }
 }
 
-void sendMessage(int messageId, long messageType, int *array, int size) {
-    Message message;
-    message.messageType = messageType;
-    message.size = size;
-
-    for (int index = 0; index < size; index++)
+void sendData(int fileDescriptor, int *array, int size) {
+    if (write(fileDescriptor, &size, sizeof(int)) != sizeof(int))
     {
-        message.array[index] = array[index];
+        perror("write failed (size)");
+        exit(1);
     }
 
-    msgsnd(messageId, &message, sizeof(message) - sizeof(long), 0);
-}
-
-void receiveMessage(int messageId, long type, int *array, int *size) {
-    Message message;
-    msgrcv(messageId, &message, sizeof(message) - sizeof(long), type, 0);
-
-    *size = message.size;
-    for (int index = 0; index < *size; index++)
+    if (write(fileDescriptor, array, size * sizeof(int)) != size * sizeof(int))
     {
-        array[index] = message.array[index];
+        perror("write failed (array)");
+        exit(1);
     }
 }
 
-void childProcess(int messageId, int* array, int* size) {
-    receiveMessage(messageId, 1, array, size);
-    quickSort(array, 0, *size - 1);
-    sendMessage(messageId, 2, array, *size);
+void receiveData(int fileDescriptor, int *array, int *size) {
+    if (read(fileDescriptor, size, sizeof(int)) != sizeof(int))
+    {
+        perror("read failed (size)");
+        exit(1);
+    }
+
+    if (read(fileDescriptor, array, (*size) * sizeof(int)) != (*size) * sizeof(int))
+    {
+        perror("read failed (array)");
+        exit(1);
+    }
+}
+
+void childProcess(int *array, int parent2child[2], int child2parent[2]) {
+    int size;
+
+    close(parent2child[1]);
+    close(child2parent[0]);
+
+    receiveData(parent2child[0], array, &size);
+    quickSort(array, 0, size - 1);
+    sendData(child2parent[1], array, size);
+
+    close(parent2child[0]);
+    close(child2parent[1]);
     free(array);
     exit(0);
 }
 
-void parentProcess(int messageId, int* array, int* size) {
-    sendMessage(messageId, 1, array, *size);
+void parentProcess(int *array, int size, int parent2child[2], int child2parent[2]) {
+    close(parent2child[0]);
+    close(child2parent[1]);
+    
+    sendData(parent2child[1], array, size);
     wait(NULL);
-    receiveMessage(messageId, 2, array, size);
+    receiveData(child2parent[0], array, &size);
 
     printf("Array After Sorting: \n");
-    display(array, *size);
+    display(array, size);
 
-    msgctl(messageId, IPC_RMID, NULL);
+    close(parent2child[1]);
+    close(child2parent[0]);
 }
 
 int main() {
     int size;
     int* array = readArray(&size);
-
-    int messageId = msgget(MESSAGE_KEY, IPC_CREAT | 0666);
-    if (messageId < 0)
-    {
-        perror("msgget failed!");
-        exit(1);
-    }
     
     printf("Array Before Sorting: \n");
     display(array, size);
+
+    int parent2child[2], child2parent[2];
+    if (pipe(parent2child) == -1 || pipe(child2parent) == -1)
+    {
+        perror("Pipe Failed!");
+        exit(1);
+    }
 
     pid_t pid = fork();
 
@@ -142,12 +148,12 @@ int main() {
 
     else if (pid == 0)
     {
-        childProcess(messageId, array, &size);
+        childProcess(array, parent2child, child2parent);
     }
 
     else
     {
-        parentProcess(messageId, array, &size);
+        parentProcess(array, size, parent2child, child2parent);
     }
 
     free(array);

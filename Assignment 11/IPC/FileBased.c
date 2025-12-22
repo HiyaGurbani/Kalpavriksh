@@ -100,6 +100,21 @@ void quickSort(int* array, int low, int high) {
     }
 }
 
+void childProcess(int* array, int size) {
+    readFromFile(array, &size);
+    quickSort(array, 0, size - 1);
+    writeToFile(array, size);
+    free(array);
+    exit(0);
+}
+
+void parentProcess(int* array, int size) {
+    wait(NULL);
+    readFromFile(array, &size);
+    printf("Array After Sorting: \n");
+    display(array, size);
+}
+
 int main() {
     int size;
     int* array = readArray(&size);
@@ -120,21 +135,14 @@ int main() {
 
     else if (pid == 0)
     {
-        readFromFile(array, &size);
-        quickSort(array, 0, size - 1);
-        writeToFile(array, size);
-        free(array);
-        exit(0);
+        childProcess(array, size);
     }
 
     else
     {
-        wait(NULL);
-        readFromFile(array, &size);
-        printf("Array After Sorting: \n");
-        display(array, size);
-        free(array);
+        parentProcess(array, size);
     }
 
+    free(array);
     return 0;
 }
