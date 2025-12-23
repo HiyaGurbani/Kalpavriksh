@@ -77,16 +77,16 @@ int main() {
         exit(1);
     }
 
-    pid_t pid = fork();
+    pid_t processId = fork();
 
-    if (pid < 0)
+    if (processId < 0)
     {
         perror("Fork Failed!\n");
         free(array);
         exit(1);
     }
 
-    else if (pid == 0)
+    else if (processId == 0)
     {
         childProcess(array, parent2child, child2parent);
     }

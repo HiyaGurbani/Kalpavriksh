@@ -30,24 +30,24 @@ void getValidChoice(int* choice) {
 }
 
 int main() {
-    int sock;
-    struct sockaddr_in serverAddr;
+    int socket;
+    struct sockaddr_in serverAddress;
     int choice;
     double amount;
     char response[RESPONSE_SIZE];
 
-    sock = socket(AF_INET, SOCK_STREAM, 0);
-    if (sock < 0)
+    socket = socket(AF_INET, SOCK_STREAM, 0);
+    if (socket < 0)
     {
         perror("Socket creation failed!");
         exit(1);
     }
 
-    serverAddr.sin_family = AF_INET;
-    serverAddr.sin_port = htons(PORT);
-    serverAddr.sin_addr.s_addr = inet_addr("127.0.0.1");
+    serverAddress.sin_family = AF_INET;
+    serverAddress.sin_port = htons(PORT);
+    serverAddress.sin_addr.s_addr = inet_addr("127.0.0.1");
 
-    if (connect(sock, (struct sockaddr*)&serverAddr, sizeof(serverAddr)) < 0)
+    if (connect(socket, (struct sockaddr*)&serverAddress, sizeof(serverAddress)) < 0)
     {
         perror("Connection failed");
         exit(1);
@@ -60,22 +60,22 @@ int main() {
 
     if (choice == 4)
     {
-        close(sock);
+        close(socket);
         return 0;
     }
 
-    send(sock, &choice, sizeof(choice), 0);
+    send(socket, &choice, sizeof(choice), 0);
 
     if (choice == 1 || choice == 2)
     {
         printf("Enter amount: ");
         scanf("%lf", &amount);
-        send(sock, &amount, sizeof(amount), 0);
+        send(socket, &amount, sizeof(amount), 0);
     }
 
-    recv(sock, response, sizeof(response), 0);
+    recv(socket, response, sizeof(response), 0);
     printf("\nServer Response: %s\n", response);
 
-    close(sock);
+    close(socket);
     return 0;
 }
