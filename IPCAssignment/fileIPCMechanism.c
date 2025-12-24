@@ -44,7 +44,6 @@ void childProcess(int* array, int size) {
     readFromFile(array, &size);
     quickSort(array, 0, size - 1);
     writeToFile(array, size);
-    free(array);
     exit(0);
 }
 

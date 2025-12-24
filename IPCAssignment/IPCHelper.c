@@ -4,7 +4,8 @@
 void getValidInteger(int* element) {
     while (scanf("%d", element) != 1)
     {
-        printf("Invalid Input! Enter again: ");        
+        printf("Invalid Input! Enter again: ");  
+        while (getchar() != '\n');
     }
 }
 

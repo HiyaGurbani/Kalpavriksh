@@ -27,6 +27,7 @@ void readDataArray(SharedData *data) {
 
 void childProcess(SharedData *data) {
     quickSort(data->array, 0, data->size - 1);
+    shmdt(data);
     exit(0);
 }
 

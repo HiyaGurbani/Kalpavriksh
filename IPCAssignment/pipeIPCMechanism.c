@@ -4,6 +4,8 @@
 #include <sys/wait.h>
 #include "IPC_HELPER.h"
 
+#define PIPE_ENDS 2
+
 void sendData(int fileDescriptor, int *array, int size) {
     if (write(fileDescriptor, &size, sizeof(int)) != sizeof(int))
     {
@@ -32,7 +34,7 @@ void receiveData(int fileDescriptor, int *array, int *size) {
     }
 }
 
-void childProcess(int *array, int parent2child[2], int child2parent[2]) {
+void childProcess(int *array, int parent2child[PIPE_ENDS], int child2parent[PIPE_ENDS]) {
     int size;
 
     close(parent2child[1]);
@@ -48,7 +50,7 @@ void childProcess(int *array, int parent2child[2], int child2parent[2]) {
     exit(0);
 }
 
-void parentProcess(int *array, int size, int parent2child[2], int child2parent[2]) {
+void parentProcess(int *array, int size, int parent2child[PIPE_ENDS], int child2parent[PIPE_ENDS]) {
     close(parent2child[0]);
     close(child2parent[1]);
     
@@ -70,7 +72,7 @@ int main() {
     printf("Array Before Sorting: \n");
     displayArray(array, size);
 
-    int parent2child[2], child2parent[2];
+    int parent2child[PIPE_ENDS], child2parent[PIPE_ENDS];
     if (pipe(parent2child) == -1 || pipe(child2parent) == -1)
     {
         perror("Pipe Failed!");

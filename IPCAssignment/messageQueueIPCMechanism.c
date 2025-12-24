@@ -8,6 +8,8 @@
 
 #define MESSAGE_KEY 1234
 #define SIZE 50
+#define PARENT_TO_CHILD 1
+#define CHILD_TO_PARENT 2
 
 typedef struct Message {
     long messageType;
@@ -25,12 +27,20 @@ void sendMessage(int messageId, long messageType, int *array, int size) {
         message.array[index] = array[index];
     }
 
-    msgsnd(messageId, &message, sizeof(message) - sizeof(long), 0);
+    if (msgsnd(messageId, &message, sizeof(message) - sizeof(long), 0) == -1)
+    {
+        perror("msgsnd failed");
+        exit(1);
+    }
 }
 
 void receiveMessage(int messageId, long type, int *array, int *size) {
     Message message;
-    msgrcv(messageId, &message, sizeof(message) - sizeof(long), type, 0);
+    if (msgrcv(messageId, &message, sizeof(message) - sizeof(long), type, 0) == -1)
+    {
+        perror("msgrcv failed");
+        exit(1);
+    }
 
     *size = message.size;
     for (int index = 0; index < *size; index++)
@@ -40,17 +50,17 @@ void receiveMessage(int messageId, long type, int *array, int *size) {
 }
 
 void childProcess(int messageId, int* array, int* size) {
-    receiveMessage(messageId, 1, array, size);
+    receiveMessage(messageId, PARENT_TO_CHILD, array, size);
     quickSort(array, 0, *size - 1);
-    sendMessage(messageId, 2, array, *size);
+    sendMessage(messageId, CHILD_TO_PARENT, array, *size);
     free(array);
     exit(0);
 }
 
 void parentProcess(int messageId, int* array, int* size) {
-    sendMessage(messageId, 1, array, *size);
+    sendMessage(messageId, PARENT_TO_CHILD, array, *size);
     wait(NULL);
-    receiveMessage(messageId, 2, array, size);
+    receiveMessage(messageId, CHILD_TO_PARENT, array, size);
 
     printf("Array After Sorting: \n");
     displayArray(array, *size);
