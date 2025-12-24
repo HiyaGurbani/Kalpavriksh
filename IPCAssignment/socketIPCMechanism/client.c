@@ -30,14 +30,14 @@ void getValidChoice(int* choice) {
 }
 
 int main() {
-    int socket;
+    int clientSocket;
     struct sockaddr_in serverAddress;
     int choice;
     double amount;
     char response[RESPONSE_SIZE];
 
-    socket = socket(AF_INET, SOCK_STREAM, 0);
-    if (socket < 0)
+    clientSocket = socket(AF_INET, SOCK_STREAM, 0);
+    if (clientSocket < 0)
     {
         perror("Socket creation failed!");
         exit(1);
@@ -47,7 +47,7 @@ int main() {
     serverAddress.sin_port = htons(PORT);
     serverAddress.sin_addr.s_addr = inet_addr("127.0.0.1");
 
-    if (connect(socket, (struct sockaddr*)&serverAddress, sizeof(serverAddress)) < 0)
+    if (connect(clientSocket, (struct sockaddr*)&serverAddress, sizeof(serverAddress)) < 0)
     {
         perror("Connection failed");
         exit(1);
@@ -60,22 +60,28 @@ int main() {
 
     if (choice == 4)
     {
-        close(socket);
+        close(clientSocket);
         return 0;
     }
 
-    send(socket, &choice, sizeof(choice), 0);
+    send(clientSocket, &choice, sizeof(choice), 0);
 
     if (choice == 1 || choice == 2)
     {
         printf("Enter amount: ");
         scanf("%lf", &amount);
-        send(socket, &amount, sizeof(amount), 0);
+        send(clientSocket, &amount, sizeof(amount), 0);
     }
 
-    recv(socket, response, sizeof(response), 0);
-    printf("\nServer Response: %s\n", response);
+    if (recv(clientSocket, response, sizeof(response), 0) > 0)
+    {
+        printf("\nServer Response: %s\n", response);
+    }
+    else
+    {
+        printf("\nFailed to receive response from server\n");
+    }
 
-    close(socket);
+    close(clientSocket);
     return 0;
 }
